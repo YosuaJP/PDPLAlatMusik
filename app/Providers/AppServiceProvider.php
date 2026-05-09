@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Contracts\OrderRepositoryInterface;
+use App\Contracts\ProductRepositoryInterface;
+use App\Repositories\EloquentOrderRepository;
+use App\Repositories\EloquentProductRepository;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,7 +16,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Repository Pattern — binding interface ke implementasi Eloquent
+        $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
+        $this->app->bind(OrderRepositoryInterface::class, EloquentOrderRepository::class);
     }
 
     /**
