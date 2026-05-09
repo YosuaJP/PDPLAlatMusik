@@ -7,12 +7,16 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+use App\Models\Category;
+
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin'       => Route::has('login'),
         'canRegister'    => Route::has('register'),
         'laravelVersion' => Application::VERSION,
         'phpVersion'     => PHP_VERSION,
+        'categories'     => Category::where('active', true)->get(),
+        'products'       => Product::with('category')->where('active', true)->inRandomOrder()->limit(8)->get(),
     ]);
 });
 

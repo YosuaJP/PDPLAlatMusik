@@ -1,7 +1,4 @@
-import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword }) {
@@ -17,126 +14,96 @@ export default function Login({ status, canResetPassword }) {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            <Head title="Login — POS Alat Musik" />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+            <Head title="Login — Melodi POS" />
 
-            {/* Background decoration */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-amber-600/5 rounded-full blur-3xl" />
-            </div>
-
-            <div className="w-full max-w-md relative">
-
-                {/* Logo & Title */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500 rounded-2xl shadow-2xl shadow-amber-500/30 mb-4">
-                        <svg className="w-9 h-9 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 3C6.477 3 2 7.477 2 13c0 1.89.518 3.658 1.419 5.168L2 22l3.832-1.419A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-9.5S17.523 3 12 3z"/>
-                        </svg>
+            <div className="w-full max-w-[400px]">
+                <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-sm border border-gray-100 relative">
+                    
+                    {/* Top Icon */}
+                    <div className="flex justify-center mb-6">
+                        <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                            <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                        </div>
                     </div>
-                    <h1 className="text-white text-2xl font-bold">POS Alat Musik</h1>
-                    <p className="text-slate-400 text-sm mt-1">Masuk ke akun Anda untuk melanjutkan</p>
-                </div>
 
-                {/* Card */}
-                <div className="bg-slate-800/80 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+                    <div className="text-center mb-8">
+                        <h1 className="text-2xl font-extrabold text-gray-900">Login</h1>
+                        <p className="text-sm text-gray-500 mt-1">Masuk untuk berbelanja.</p>
+                    </div>
 
                     {status && (
-                        <div className="mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                        <div className="mb-4 p-3 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium text-center">
                             {status}
                         </div>
                     )}
 
                     <form onSubmit={submit} className="space-y-5">
-                        {/* Email */}
+                        
+                        {/* Email Field */}
                         <div>
-                            <InputLabel htmlFor="email" value="Alamat Email" className="text-slate-300 text-sm font-medium" />
-                            <TextInput
+                            <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-1.5">Email</label>
+                            <input
                                 id="email"
                                 type="email"
                                 name="email"
                                 value={data.email}
-                                className="mt-1.5 block w-full bg-slate-900 border-slate-600 text-white rounded-xl focus:border-amber-500 focus:ring-amber-500/20"
-                                autoComplete="username"
-                                isFocused={true}
+                                className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
+                                placeholder="nama@email.com"
                                 onChange={(e) => setData('email', e.target.value)}
-                                placeholder="admin@alatmusik.com"
+                                autoFocus
                             />
-                            <InputError message={errors.email} className="mt-1.5" />
+                            <InputError message={errors.email} className="mt-1" />
                         </div>
 
-                        {/* Password */}
+                        {/* Password Field */}
                         <div>
-                            <InputLabel htmlFor="password" value="Password" className="text-slate-300 text-sm font-medium" />
-                            <TextInput
+                            <div className="flex justify-between items-center mb-1.5">
+                                <label htmlFor="password" className="block text-sm font-bold text-gray-700">Password</label>
+                                {canResetPassword && (
+                                    <Link href={route('password.request')} className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
+                                        Lupa Password?
+                                    </Link>
+                                )}
+                            </div>
+                            <input
                                 id="password"
                                 type="password"
                                 name="password"
                                 value={data.password}
-                                className="mt-1.5 block w-full bg-slate-900 border-slate-600 text-white rounded-xl focus:border-amber-500 focus:ring-amber-500/20"
-                                autoComplete="current-password"
-                                onChange={(e) => setData('password', e.target.value)}
+                                className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
                                 placeholder="••••••••"
+                                onChange={(e) => setData('password', e.target.value)}
                             />
-                            <InputError message={errors.password} className="mt-1.5" />
+                            <InputError message={errors.password} className="mt-1" />
                         </div>
 
-                        {/* Remember + Forgot */}
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <Checkbox
-                                    name="remember"
-                                    checked={data.remember}
-                                    onChange={(e) => setData('remember', e.target.checked)}
-                                />
-                                <span className="text-slate-400 text-sm">Ingat saya</span>
-                            </label>
-
-                            {canResetPassword && (
-                                <Link
-                                    href={route('password.request')}
-                                    className="text-amber-400 text-sm hover:text-amber-300 transition-colors"
-                                >
-                                    Lupa password?
-                                </Link>
-                            )}
-                        </div>
-
-                        {/* Submit */}
+                        {/* Submit Button */}
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed
-                                text-white font-semibold rounded-xl transition-all duration-200
-                                shadow-lg shadow-amber-500/30 hover:shadow-amber-500/40 hover:-translate-y-0.5
-                                focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-800"
+                            className="w-full mt-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex justify-center items-center gap-2 disabled:opacity-70"
                         >
-                            {processing ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                                    </svg>
-                                    Memproses...
-                                </span>
-                            ) : 'Masuk'}
+                            {processing ? 'Memproses...' : 'Masuk Sekarang'}
+                            {!processing && (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                </svg>
+                            )}
                         </button>
                     </form>
 
-                    <p className="text-center text-slate-400 text-sm mt-6">
-                        Belum punya akun?{' '}
-                        <Link href={route('register')} className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
-                            Daftar sekarang
-                        </Link>
-                    </p>
-                </div>
+                    <div className="mt-8 text-center">
+                        <p className="text-sm text-gray-500">
+                            Belum punya akun?{' '}
+                            <Link href={route('register')} className="font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
+                                Daftar Disini
+                            </Link>
+                        </p>
+                    </div>
 
-                {/* Demo credentials hint */}
-                <div className="mt-4 p-3 bg-slate-800/40 border border-slate-700/30 rounded-xl text-center">
-                    <p className="text-slate-500 text-xs">
-                        Demo: <span className="text-slate-300">admin@alatmusik.com</span> / <span className="text-slate-300">password123</span>
-                    </p>
                 </div>
             </div>
         </div>
