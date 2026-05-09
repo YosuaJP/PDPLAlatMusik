@@ -1,59 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🎸 Melodi POS — Online Point of Sales Alat Musik
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Proyek ini adalah sistem **Online Point of Sales (P.O.S) untuk Toko Alat Musik**. Dibangun menggunakan arsitektur modern (Inertia Monolith) yang menggabungkan kekuatan backend Laravel dengan interaktivitas frontend React.js, menghasilkan aplikasi yang cepat, aman, dan tanpa perlu mengelola API terpisah.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🛠️ Stack Teknologi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Layer | Teknologi | Versi | Keterangan |
+|---|---|---|---|
+| **Backend** | Laravel | 12.x | Framework PHP utama |
+| **Frontend** | React | 19.x | Library antarmuka pengguna (UI) |
+| **SSR Bridge** | Inertia.js | 2.x | Penghubung Laravel & React (tanpa API REST manual) |
+| **Styling** | Tailwind CSS | 3.x | Framework CSS utility-first |
+| **Bundler** | Vite | 7.x | Build tool & Hot Module Replacement (HMR) |
+| **Database** | MySQL | 8.x | Sistem manajemen basis data (via XAMPP) |
+| **Auth** | Laravel Breeze | 2.x | Starter kit autentikasi bawaan |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Progress & Pencapaian (Minggu 1)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Berikut adalah rangkuman dari penyelesaian **Step 1 hingga Step 4** pada tahap awal pengembangan proyek ini:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 1. Fondasi Database (Database Layer)
+- Berhasil membuat **14 file migrasi baru** untuk menyusun struktur basis data, ditambah modifikasi pada tabel `users`. Total ada 15 tabel berelasi.
+- Mengimplementasikan **15 Eloquent Models** dengan pemetaan relasi lengkap (`hasMany`, `belongsTo`, `hasOne`) serta pengaturan *SoftDeletes* pada tabel utama (`users`, `products`).
+- Membuat **7 Seeder** yang menampung data dummy realistis:
+  - 6 Pengguna (1 Admin, 5 Customer)
+  - 7 Kategori Alat Musik
+  - 18 Produk nyata beserta stoknya
+  - 4 Skenario Pesanan (Orders) lengkap dengan pembayaran, pengiriman, dan ulasan.
+- Seluruh konstrain *Foreign Key* tervalidasi dan migrasi sukses berjalan di MySQL XAMPP.
 
-## Laravel Sponsors
+### 2. Arsitektur & Design Pattern
+- **Inertia.js Monolith:** Menggunakan pola *single-repo* di mana Laravel mengatur perutean (routing), dan React yang merendernya. Ini mematikan kebutuhan `react-router-dom` dan mencegah isu *CORS*.
+- **Repository Pattern:** Mengabstraksi logika database dari Controller. Telah dibuat `ProductRepositoryInterface` dan `OrderRepositoryInterface` beserta implementasi kelasnya, yang kemudian diikat (*bound*) ke dalam `AppServiceProvider`.
+- **Snapshot Pattern:** Pada tabel detail pesanan (`order_items`), nama dan harga produk disimpan secara langsung (bukan berelasi dengan ID saja) agar riwayat struk belanja tidak berubah walau harga produk berubah di masa depan.
+- **Observer Pattern:** Pembuatan otomatis riwayat status pesanan ke tabel `order_status_histories`.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 3. Frontend & UI/UX (Redesign)
+- **Tema Desain:** Menggunakan *Clean Light Theme* bersudut membulat (*rounded-3xl*) dengan warna aksen **Emerald (Hijau Zamrud)**, mengadaptasi referensi desain toko modern.
+- **Halaman Storefront (Welcome.jsx):** Terdapat Navbar pencarian, Banner Promo Diskon, kartu Kategori Populer, dan Grid Produk.
+- **Halaman Autentikasi:** Merombak bawaan Laravel Breeze untuk `Login`, `Register`, dan `Forgot Password` menjadi desain kartu terpusat yang modern. Menambahkan field `Nomor Telepon` pada logika pendaftaran.
+- **Dashboard POS Admin:** Tersedia Layout POS khusus dengan Sidebar lipat (*collapsible*) serta halaman *Dashboard* yang menampilkan metrik toko (Total Pendapatan, Pesanan) dan tabel peringatan stok.
 
-### Premium Partners
+### 4. DevOps & Dokumentasi
+- **Git Version Control:** Repositori berhasil diinisialisasi dan diatur dalam *branch* `week-1`.
+- **API Testing:** Menyertakan file koleksi Postman lengkap (`PDPLAlatMusik.postman_collection.json`) untuk pengujian Endpoint API.
+- **Dokumentasi Laporan:** Penyusunan dokumentasi teknis, struktur, dan pola desain ini.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## ⚙️ Cara Menjalankan Aplikasi Secara Lokal
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Ikuti langkah berikut untuk menjalankan aplikasi Melodi POS di komputer Anda:
 
-## Code of Conduct
+1. **Instalasi Dependensi**
+   ```bash
+   composer install
+   npm install
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+2. **Konfigurasi Database (XAMPP)**
+   - Buka XAMPP Control Panel dan nyalakan (Start) modul **Apache** dan **MySQL**.
+   - Buka browser dan pergi ke `http://localhost/phpmyadmin`.
+   - Buat database baru dengan nama: **`db_melodi_pos`**.
 
-## Security Vulnerabilities
+3. **Pengaturan `.env`**
+   Duplikat file `.env.example` menjadi `.env`, buka file tersebut, dan sesuaikan bagian database:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=db_melodi_pos
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+   *(Catatan: Jika user root MySQL Anda memiliki password, silakan isikan di bagian DB_PASSWORD)*.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+4. **Jalankan Migrasi dan Seeding**
+   Lakukan perintah ini untuk membangun tabel dan memasukkan data dummy:
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
 
-## License
+5. **Jalankan Server Lokal**
+   Buka dua jendela terminal (Command Prompt/Git Bash) dan jalankan masing-masing perintah ini:
+   
+   Terminal 1 (Backend PHP):
+   ```bash
+   php artisan serve
+   ```
+   Terminal 2 (Frontend Vite):
+   ```bash
+   npm run dev
+   ```
+   Aplikasi siap diakses di: **`http://localhost:8000`**
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 🔐 Akun Demo untuk Login
+
+| Tipe Akun | Email | Password |
+|---|---|---|
+| **Admin** | `admin@alatmusik.com` | `password123` |
+| **Customer** | `budi@gmail.com` | `password123` |
+
+---
+*Dibuat untuk Laporan Target Progress Week-1.*

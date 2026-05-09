@@ -1,0 +1,463 @@
+{
+  "info": {
+    "name": "PDPLAlatMusik API",
+    "description": "Koleksi API untuk proyek Online POS Alat Musik — Laravel 12 + Inertia.js\n\nBase URL: http://localhost:8000\n\nAutentikasi: Gunakan session cookie (login via /login terlebih dahulu)\nUntuk endpoint yang membutuhkan auth, tambahkan header:\n  - X-XSRF-TOKEN: (ambil dari cookie XSRF-TOKEN setelah login)\n  - Accept: application/json",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Autentikasi",
+      "item": [
+        {
+          "name": "CSRF Cookie",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/sanctum/csrf-cookie",
+            "description": "Wajib dipanggil pertama kali untuk mendapatkan XSRF-TOKEN cookie sebelum login."
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/login",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@alatmusik.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "description": "Login sebagai admin. Gunakan email & password dari seeder."
+          }
+        },
+        {
+          "name": "Login sebagai Customer",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/login",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"budi@gmail.com\",\n  \"password\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/register",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User Baru\",\n  \"email\": \"userbaru@gmail.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/logout",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Produk",
+      "item": [
+        {
+          "name": "Daftar Semua Produk",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true, "description": "Cari berdasarkan nama/SKU" },
+                { "key": "category_id", "value": "", "disabled": true },
+                { "key": "active", "value": "1", "disabled": true },
+                { "key": "per_page", "value": "15", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Detail Produk",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/products/1",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "description": "Ganti :id dengan product_id yang diinginkan"
+          }
+        },
+        {
+          "name": "Buat Produk Baru",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/products",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Gitar Akustik Test\",\n  \"description\": \"Deskripsi produk test\",\n  \"price\": 1500000,\n  \"stock_qty\": 10,\n  \"sku\": \"GTR-TEST-001\",\n  \"image_url\": null,\n  \"active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Produk",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/products/1",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1350000,\n  \"stock_qty\": 12\n}"
+            }
+          }
+        },
+        {
+          "name": "Hapus Produk (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/products/1",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Produk Stok Menipis",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/products/low-stock",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "description": "Produk dengan stok <= 5"
+          }
+        },
+        {
+          "name": "Cari Produk",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/products/search?q=yamaha",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "search"],
+              "query": [{ "key": "q", "value": "yamaha" }]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Kategori",
+      "item": [
+        {
+          "name": "Semua Kategori",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/categories",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Detail Kategori",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/categories/1",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Buat Kategori",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/categories",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_name\": \"Ukulele\",\n  \"description\": \"Berbagai jenis ukulele sopran, konser, dan tenor\",\n  \"active\": true\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 Pesanan (Orders)",
+      "item": [
+        {
+          "name": "Semua Pesanan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "status", "value": "pending", "disabled": true },
+                { "key": "start_date", "value": "2026-01-01", "disabled": true },
+                { "key": "end_date", "value": "2026-12-31", "disabled": true },
+                { "key": "per_page", "value": "15", "disabled": true }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Detail Pesanan",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/orders/1",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "description": "Mengembalikan order beserta items, payment, shipment, dan status history"
+          }
+        },
+        {
+          "name": "Buat Pesanan Baru",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/orders",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 2,\n  \"address_id\": 1,\n  \"promo_id\": null,\n  \"items\": [\n    { \"product_id\": 1, \"quantity\": 1 },\n    { \"product_id\": 14, \"quantity\": 3 }\n  ],\n  \"courier_code\": \"jne\",\n  \"notes\": \"Tolong packing rapi\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Status Pesanan",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/orders/1/status",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Pesanan sedang diproses oleh gudang\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Batalkan Pesanan",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/orders/3/cancel",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Stok habis mendadak\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Ringkasan Penjualan",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/orders/sales-summary?start_date=2026-05-01&end_date=2026-05-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "sales-summary"],
+              "query": [
+                { "key": "start_date", "value": "2026-05-01" },
+                { "key": "end_date", "value": "2026-05-31" }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Pembayaran (Payments)",
+      "item": [
+        {
+          "name": "Detail Pembayaran by Order",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/payments/order/1",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Buat Pembayaran (Snap)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/payments",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": 3\n}"
+            },
+            "description": "Membuat transaksi Midtrans Snap dan mengembalikan payment_url"
+          }
+        },
+        {
+          "name": "Midtrans Webhook",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/payments/webhook",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"INV-ORD3-1234567890\",\n  \"transaction_status\": \"settlement\",\n  \"payment_type\": \"gopay\",\n  \"gross_amount\": \"1700000.00\",\n  \"signature_key\": \"abc123...\"\n}"
+            },
+            "description": "Endpoint webhook untuk notifikasi pembayaran dari Midtrans"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚚 Pengiriman (Shipments)",
+      "item": [
+        {
+          "name": "Detail Pengiriman by Order",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/shipments/order/1",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Update Nomor Resi",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/shipments/1",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tracking_number\": \"JNE0099887766\",\n  \"status\": \"picked_up\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎟️ Promo",
+      "item": [
+        {
+          "name": "Semua Promo",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/promos",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Validasi Kode Promo",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/promos/validate",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"promo_code\": \"WELCOME10\",\n  \"subtotal\": 1500000\n}"
+            }
+          }
+        },
+        {
+          "name": "Buat Promo Baru",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/promos",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"promo_code\": \"HARBOLNAS30\",\n  \"promo_name\": \"Hari Belanja Online Nasional 30%\",\n  \"promo_type\": \"percentage\",\n  \"discount_value\": 30,\n  \"max_discount_amount\": 500000,\n  \"min_purchase\": 1000000,\n  \"start_date\": \"2026-12-10 00:00:00\",\n  \"end_date\": \"2026-12-12 23:59:59\",\n  \"active\": true\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⭐ Ulasan (Reviews)",
+      "item": [
+        {
+          "name": "Ulasan Produk",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/reviews/product/1",
+            "header": [{ "key": "Accept", "value": "application/json" }]
+          }
+        },
+        {
+          "name": "Buat Ulasan",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/reviews",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_item_id\": 1,\n  \"product_id\": 1,\n  \"rating\": 5,\n  \"comment\": \"Produk bagus, pengiriman cepat!\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard Stats",
+      "item": [
+        {
+          "name": "Statistik Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/dashboard",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "X-Inertia", "value": "true" }
+            ],
+            "description": "Mengembalikan stats, recentOrders, dan lowStockProducts sebagai JSON Inertia response"
+          }
+        }
+      ]
+    }
+  ]
+}
