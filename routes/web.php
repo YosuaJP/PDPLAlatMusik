@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CartController;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Foundation\Application;
@@ -46,7 +47,10 @@ Route::get('/dashboard', function () {
         ]);
     }
 
-    return Inertia::render('UserDashboard');
+    return Inertia::render('UserDashboard', [
+        'categories' => Category::where('active', true)->get(),
+        'products'   => Product::with('category')->where('active', true)->get(),
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 use App\Http\Controllers\AdminCategoryController;
@@ -62,7 +66,76 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
     Route::put('/products/{id}', [AdminProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+
+    // Cart routes (user)
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::patch('/cart/update/{cartItemId}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/remove/{cartItemId}', [CartController::class, 'remove'])->name('cart.remove');
+
+    // Product catalog (user-facing)
+    Route::get('/shop/products', function () {
+        $search   = request('search', '');
+        $catId    = request('category', '');
+        $sort     = request('sort', 'latest');
+
+        $query = \App\Models\Product::with('category')->where('active', true);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+        if ($catId) {
+            $query->where('category_id', $catId);
+        }
+        switch ($sort) {
+            case 'price_asc':  $query->orderBy('price', 'asc'); break;
+            case 'price_desc': $query->orderBy('price', 'desc'); break;
+            default:           $query->orderByDesc('product_id'); break;
+        }
+
+        return Inertia::render('ProductCatalog', [
+            'products'   => $query->get(),
+            'categories' => \App\Models\Category::where('active', true)->get(),
+            'filters'    => ['search' => $search, 'category' => $catId, 'sort' => $sort],
+        ]);
+    })->name('product.catalog');
+
+    // Product detail (user-facing)
+
+    Route::get('/shop/product/{id}', function ($id) {
+        $product = \App\Models\Product::with(['category', 'reviews'])->findOrFail($id);
+        $related = \App\Models\Product::with('category')
+            ->where('category_id', $product->category_id)
+            ->where('product_id', '!=', $product->product_id)
+            ->where('active', true)
+            ->inRandomOrder()
+            ->limit(4)
+            ->get();
+
+        $reviews = $product->reviews()->with('orderItem.order.user')->latest()->get()->map(function ($r) {
+            return [
+                'review_id' => $r->review_id,
+                'rating'    => $r->rating,
+                'comment'   => $r->comment,
+                'created_at'=> $r->created_at?->format('d M Y') ?? '',
+                'user_name' => $r->orderItem?->order?->user?->name ?? 'Pembeli',
+            ];
+        });
+
+        $avgRating = $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 0;
+
+        return Inertia::render('ProductDetail', [
+            'product'   => $product,
+            'related'   => $related,
+            'reviews'   => $reviews,
+            'avgRating' => $avgRating,
+        ]);
+    })->name('product.detail');
 });
+
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
