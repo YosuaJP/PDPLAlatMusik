@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
         // Admin
         User::create([
             'name' => 'Admin Toko',
-            'email' => 'admin@alatmusik.com',
+            'email' => 'admin@gmail.com',
             'password' => Hash::make('password'),
             'role' => 'admin',
             'phone_number' => '081200000001',
@@ -24,7 +24,7 @@ class UserSeeder extends Seeder
 
         // Customers
         $customers = [
-            ['name' => 'Budi Santoso', 'email' => 'budi@gmail.com', 'phone' => '081234567890'],
+            ['name' => 'Charles', 'email' => 'budi@gmail.com', 'phone' => '081234567890'],
             ['name' => 'Sari Dewi', 'email' => 'sari@gmail.com', 'phone' => '081234567891'],
             ['name' => 'Ahmad Fauzi', 'email' => 'ahmad@gmail.com', 'phone' => '081234567892'],
             ['name' => 'Linda Permata', 'email' => 'linda@gmail.com', 'phone' => '081234567893'],
