@@ -9,7 +9,7 @@ const navItems = [
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
             </svg>
         ),
     },
@@ -36,29 +36,29 @@ const navItems = [
         ),
     },
     {
-        label: 'Pesanan',
-        href: '/orders',
-        routeName: 'orders.*',
+        label: 'Pencatatan Stok',
+        href: '/stocks',
+        routeName: 'stocks.*',
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
         ),
     },
     {
-        label: 'Pembayaran',
-        href: '/payments',
-        routeName: 'payments.*',
+        label: 'Performa Produk',
+        href: '/performance',
+        routeName: 'performance.*',
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
         ),
     },
     {
-        label: 'Promo',
+        label: 'Promo & Diskon',
         href: '/promos',
         routeName: 'promos.*',
         icon: (
@@ -69,18 +69,6 @@ const navItems = [
         ),
     },
     {
-        label: 'Pengguna',
-        href: '/users',
-        routeName: 'users.*',
-        icon: (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-        ),
-        adminOnly: true,
-    },
-    {
         label: 'Laporan',
         href: '/reports',
         routeName: 'reports.*',
@@ -88,6 +76,40 @@ const navItems = [
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+        ),
+        adminOnly: true,
+    },
+    {
+        label: 'Pesanan',
+        href: '/orders',
+        routeName: 'orders.*',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Refund',
+        href: '/refunds',
+        routeName: 'refunds.*',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" />
+            </svg>
+        ),
+    },
+    {
+        label: 'Daftar User',
+        href: '/users',
+        routeName: 'users.*',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
         ),
         adminOnly: true,
@@ -102,15 +124,15 @@ function SidebarItem({ item, collapsed, currentUrl }) {
             href={item.href}
             className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                transition-all duration-200 group relative
+                transition-all duration-200 group relative mb-1
                 ${isActive
-                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30'
-                    : 'text-slate-400 hover:bg-slate-700/60 hover:text-white'
+                    ? 'bg-[#6BCB77] text-white shadow-sm'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 }
                 ${collapsed ? 'justify-center' : ''}
             `}
         >
-            <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`}>
+            <span className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-500'}`}>
                 {item.icon}
             </span>
 
@@ -119,9 +141,9 @@ function SidebarItem({ item, collapsed, currentUrl }) {
             )}
 
             {collapsed && (
-                <div className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-xs rounded-md
+                <div className="absolute left-full ml-3 px-2 py-1 bg-white text-slate-700 text-xs rounded-md
                     opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none
-                    whitespace-nowrap z-50 shadow-lg border border-slate-700">
+                    whitespace-nowrap z-50 shadow-lg border border-slate-200">
                     {item.label}
                 </div>
             )}
@@ -148,27 +170,25 @@ export default function POSLayout({ children, title }) {
     });
 
     const sidebarContent = (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-white">
             {/* Logo */}
-            <div className={`flex items-center gap-3 px-4 py-5 border-b border-slate-700/50 ${sidebarCollapsed ? 'justify-center px-2' : ''}`}>
-                <div className="flex-shrink-0 w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/30">
-                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 3C6.477 3 2 7.477 2 13c0 1.89.518 3.658 1.419 5.168L2 22l3.832-1.419A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-9.5S17.523 3 12 3zm0 2c4.418 0 8 3.358 8 7.5S16.418 20 12 20a7.956 7.956 0 01-4.014-1.077l-.286-.172-2.274.842.842-2.274-.172-.286A7.956 7.956 0 014 13.5C4 9.358 7.582 6 12 6z"/>
+            <div className={`flex items-center gap-3 px-4 py-5 border-b border-slate-100 ${sidebarCollapsed ? 'justify-center px-2' : ''}`}>
+                <div className="flex-shrink-0 w-10 h-10 bg-[#6BCB77] rounded-full flex items-center justify-center shadow-md shadow-[#6BCB77]/20">
+                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 3v2a7 7 0 00-7 7 1 1 0 01-2 0 9 9 0 019-9zm0 18v-2a7 7 0 007-7 1 1 0 012 0 9 9 0 01-9 9zm4.95-15.536l-1.414 1.414A7 7 0 0012 5V3a9 9 0 014.95 4.464zM3.464 16.95l1.414-1.414A7 7 0 0012 19v2a9 9 0 01-8.536-4.05z" />
+                        <circle cx="12" cy="12" r="3" />
                     </svg>
                 </div>
                 {!sidebarCollapsed && (
                     <div>
-                        <p className="text-white font-bold text-sm leading-none">POS Alat Musik</p>
-                        <p className="text-slate-400 text-xs mt-0.5">Management System</p>
+                        <p className="text-slate-800 font-bold text-base leading-none">NadaKito</p>
+                        <p className="text-slate-500 text-xs mt-1">Admin Panel</p>
                     </div>
                 )}
             </div>
 
             {/* Nav Items */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                {!sidebarCollapsed && (
-                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider px-3 mb-2">Menu Utama</p>
-                )}
+            <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scrollbar">
                 {visibleNavItems.map((item) => (
                     <SidebarItem
                         key={item.href}
@@ -180,38 +200,23 @@ export default function POSLayout({ children, title }) {
             </nav>
 
             {/* User Info Bottom */}
-            <div className={`border-t border-slate-700/50 p-3 ${sidebarCollapsed ? 'flex justify-center' : ''}`}>
-                {sidebarCollapsed ? (
-                    <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-sm font-bold">
-                        {user?.name?.charAt(0).toUpperCase()}
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                            {user?.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{user?.name}</p>
-                            <p className="text-slate-400 text-xs truncate capitalize">{user?.role}</p>
-                        </div>
-                        <button
-                            onClick={handleLogout}
-                            title="Logout"
-                            className="text-slate-400 hover:text-red-400 transition-colors flex-shrink-0"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                            </svg>
-                        </button>
-                    </div>
-                )}
+            <div className={`mt-auto p-4 border-t border-slate-100`}>
+                <button
+                    onClick={handleLogout}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:bg-red-50 hover:text-red-500 transition-all duration-200 w-full ${sidebarCollapsed ? 'justify-center' : ''}`}
+                >
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    {!sidebarCollapsed && <span>Logout</span>}
+                </button>
             </div>
         </div>
     );
 
     return (
-        <div className="flex h-screen bg-slate-950 overflow-hidden">
+        <div className="flex h-screen bg-[#F4F7F5] overflow-hidden">
 
             {/* Mobile overlay */}
             {mobileOpen && (
@@ -224,9 +229,9 @@ export default function POSLayout({ children, title }) {
             {/* Sidebar — Desktop */}
             <aside
                 className={`
-                    hidden lg:flex flex-col bg-slate-800 border-r border-slate-700/50
-                    transition-all duration-300 ease-in-out flex-shrink-0
-                    ${sidebarCollapsed ? 'w-16' : 'w-60'}
+                    hidden lg:flex flex-col bg-white shadow-[2px_0_8px_-2px_rgba(0,0,0,0.05)] z-20
+                    transition-all duration-300 ease-in-out flex-shrink-0 border-r border-slate-100
+                    ${sidebarCollapsed ? 'w-20' : 'w-64'}
                 `}
             >
                 {sidebarContent}
@@ -235,7 +240,7 @@ export default function POSLayout({ children, title }) {
             {/* Sidebar — Mobile drawer */}
             <aside
                 className={`
-                    fixed top-0 left-0 h-full w-64 bg-slate-800 border-r border-slate-700/50 z-30
+                    fixed top-0 left-0 h-full w-64 bg-white z-40 shadow-2xl border-r border-slate-100
                     transition-transform duration-300 lg:hidden
                     ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
                 `}
@@ -247,72 +252,65 @@ export default function POSLayout({ children, title }) {
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
 
                 {/* Top Navbar */}
-                <header className="bg-slate-900 border-b border-slate-700/50 px-4 py-3 flex items-center justify-between flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        {/* Toggle sidebar (desktop) */}
+                <header className="bg-white h-[68px] flex items-center justify-between px-6 flex-shrink-0 shadow-sm z-10">
+                    <div className="flex items-center gap-4">
+                        {/* Toggle sidebar */}
                         <button
                             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
-
-                        {/* Toggle sidebar (mobile) */}
                         <button
                             onClick={() => setMobileOpen(!mobileOpen)}
-                            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+                            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
 
-                        {/* Page title */}
-                        {title && (
-                            <h1 className="text-white font-semibold text-base">{title}</h1>
-                        )}
+                        <h1 className="text-slate-800 font-bold text-lg">Overview</h1>
                     </div>
 
                     {/* Right side */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-4">
                         {/* Notification bell */}
-                        <button className="relative flex items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                        <button className="relative flex items-center justify-center w-9 h-9 rounded-full bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                     d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
-                            {/* Badge */}
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
 
                         {/* User dropdown */}
-                        <div className="relative">
+                        <div className="relative z-50">
                             <button
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-slate-700 transition-colors"
+                                className="flex items-center gap-3 hover:bg-slate-50 px-2 py-1 rounded-lg transition-colors"
                             >
-                                <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-white text-xs font-bold">
-                                    {user?.name?.charAt(0).toUpperCase()}
+                                <div className="hidden sm:block text-right">
+                                    <p className="text-slate-800 text-sm font-bold leading-none">{user?.name ?? 'Admin'}</p>
+                                    <p className="text-slate-500 text-xs mt-1 capitalize">{user?.role ?? 'Owner'}</p>
                                 </div>
-                                <span className="text-slate-300 text-sm font-medium hidden sm:block">{user?.name}</span>
-                                <svg className="w-4 h-4 text-slate-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
+                                <div className="w-9 h-9 rounded-full bg-[#6BCB77] flex items-center justify-center text-white text-sm font-bold shadow-sm border-2 border-white">
+                                    {user?.name?.charAt(0).toUpperCase() ?? 'A'}
+                                </div>
                             </button>
 
                             {userMenuOpen && (
                                 <>
-                                    <div className="fixed inset-0 z-10" onClick={() => setUserMenuOpen(false)} />
-                                    <div className="absolute right-0 top-full mt-1 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 overflow-hidden">
-                                        <div className="px-4 py-3 border-b border-slate-700">
-                                            <p className="text-white text-sm font-medium">{user?.name}</p>
-                                            <p className="text-slate-400 text-xs">{user?.email}</p>
+                                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                                        <div className="px-4 py-3 border-b border-slate-100 bg-slate-50">
+                                            <p className="text-slate-800 text-sm font-bold">{user?.name}</p>
+                                            <p className="text-slate-500 text-xs truncate">{user?.email}</p>
                                         </div>
                                         <Link
                                             href={route('profile.edit')}
-                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors"
                                             onClick={() => setUserMenuOpen(false)}
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,7 +336,7 @@ export default function POSLayout({ children, title }) {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 overflow-y-auto bg-slate-950 p-6">
+                <main className="flex-1 overflow-y-auto bg-[#F4F7F5] p-6 lg:p-8">
                     {children}
                 </main>
             </div>

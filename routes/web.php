@@ -21,29 +21,48 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
-    $stats = [
-        'total_orders'   => Order::count(),
-        'total_revenue'  => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
-        'total_products' => Product::where('active', true)->count(),
-        'pending_orders' => Order::where('status', 'pending')->count(),
-    ];
+    if (auth()->user()->role === 'admin') {
+        $stats = [
+            'total_orders'   => Order::count(),
+            'total_revenue'  => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
+            'total_products' => Product::where('active', true)->count(),
+            'pending_orders' => Order::where('status', 'pending')->count(),
+        ];
 
-    $recentOrders = Order::with('user')
-        ->orderByDesc('created_at')
-        ->limit(7)
-        ->get();
+        $recentOrders = Order::with('user')
+            ->orderByDesc('created_at')
+            ->limit(7)
+            ->get();
 
-    $lowStockProducts = Product::where('stock_qty', '<=', 5)
-        ->where('active', true)
-        ->orderBy('stock_qty')
-        ->get();
+        $lowStockProducts = Product::where('stock_qty', '<=', 5)
+            ->where('active', true)
+            ->orderBy('stock_qty')
+            ->get();
 
-    return Inertia::render('Dashboard', [
-        'stats'            => $stats,
-        'recentOrders'     => $recentOrders,
-        'lowStockProducts' => $lowStockProducts,
-    ]);
+        return Inertia::render('AdminDashboard', [
+            'stats'            => $stats,
+            'recentOrders'     => $recentOrders,
+            'lowStockProducts' => $lowStockProducts,
+        ]);
+    }
+
+    return Inertia::render('UserDashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+use App\Http\Controllers\AdminCategoryController;
+use App\Http\Controllers\AdminProductController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
+    Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');
+    Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->name('categories.update');
+    Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
+    Route::put('/products/{id}', [AdminProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
