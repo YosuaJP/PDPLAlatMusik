@@ -9,11 +9,25 @@ use Inertia\Inertia;
 
 class AdminProductController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->input('search', '');
+
+        $query = Product::with('category')->orderByDesc('product_id');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $query->paginate(10)->withQueryString();
+
         return Inertia::render('AdminProducts', [
-            'products'   => Product::with('category')->orderByDesc('created_at')->get(),
+            'products'   => $products,
             'categories' => Category::where('active', true)->get(),
+            'filters'    => ['search' => $search],
         ]);
     }
 

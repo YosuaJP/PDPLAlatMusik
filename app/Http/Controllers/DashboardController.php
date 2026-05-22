@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -30,10 +33,11 @@ class DashboardController extends Controller
 
         if ($user->role === 'admin') {
             $stats = [
-                'total_orders'   => Order::count(),
-                'total_revenue'  => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
-                'total_products' => Product::where('active', true)->count(),
-                'pending_orders' => Order::where('status', 'pending')->count(),
+                'total_orders'    => Order::count(),
+                'total_revenue'   => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
+                'total_products'  => Product::where('active', true)->count(),
+                'pending_orders'  => Order::where('status', 'pending')->count(),
+                'total_customers' => User::where('role', 'user')->count(),
             ];
 
             $recentOrders = Order::with('user')
@@ -46,10 +50,45 @@ class DashboardController extends Controller
                 ->orderBy('stock_qty')
                 ->get();
 
+            // Top selling products
+            $topProducts = OrderItem::select(
+                    'product_name',
+                    'product_id',
+                    DB::raw('SUM(quantity) as total_sold'),
+                    DB::raw('SUM(quantity * price_each) as total_revenue')
+                )
+                ->groupBy('product_name', 'product_id')
+                ->orderByDesc('total_sold')
+                ->limit(5)
+                ->get()
+                ->map(fn ($item) => [
+                    'product_name'  => $item->product_name,
+                    'product_id'    => $item->product_id,
+                    'total_sold'    => (int) $item->total_sold,
+                    'total_revenue' => (float) $item->total_revenue,
+                    'image_url'     => Product::find($item->product_id)?->image_url,
+                ]);
+
+            // Orders needing processing
+            $pendingOrdersList = Order::with('user')
+                ->whereIn('status', ['pending', 'processing'])
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+                ->map(fn ($o) => [
+                    'order_id'    => $o->order_id,
+                    'user_name'   => $o->user?->name ?? 'Pelanggan',
+                    'final_amount'=> (float) $o->final_amount,
+                    'status'      => $o->status,
+                    'created_at'  => $o->created_at->diffForHumans(),
+                ]);
+
             return Inertia::render('Dashboard', [
-                'stats'            => $stats,
-                'recentOrders'     => $recentOrders,
-                'lowStockProducts' => $lowStockProducts,
+                'stats'             => $stats,
+                'recentOrders'      => $recentOrders,
+                'lowStockProducts'  => $lowStockProducts,
+                'topProducts'       => $topProducts,
+                'pendingOrdersList' => $pendingOrdersList,
             ]);
         }
 
@@ -78,3 +117,4 @@ class DashboardController extends Controller
         ]);
     }
 }
+

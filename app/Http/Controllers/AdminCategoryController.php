@@ -11,7 +11,7 @@ class AdminCategoryController extends Controller
     public function index()
     {
         return Inertia::render('AdminCategories', [
-            'categories' => Category::orderByDesc('created_at')->get(),
+            'categories' => Category::withCount('products')->orderByDesc('created_at')->paginate(10),
         ]);
     }
 
