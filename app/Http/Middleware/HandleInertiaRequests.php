@@ -34,6 +34,24 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'cartCount' => function () use ($request) {
+                $user = $request->user();
+                if (!$user) {
+                    return 0;
+                }
+                
+                $userId = $user->user_id ?? $user->id;
+                
+                $cart = \App\Models\Cart::where('user_id', $userId)
+                    ->where('status', 'active')
+                    ->first();
+                    
+                if (!$cart) {
+                    return 0;
+                }
+                
+                return (int) $cart->items()->sum('quantity');
+            },
         ];
     }
 }
