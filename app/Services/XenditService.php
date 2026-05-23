@@ -30,4 +30,15 @@ class XenditService implements PaymentGatewayInterface
             'amount'         => (float) $order->final_amount,
         ];
     }
+
+    /**
+     * Mendapatkan nama gerbang pembayaran.
+     *
+     * @return string
+     */
+    public function getGatewayName(): string
+    {
+        return 'xendit';
+    }
 }
+

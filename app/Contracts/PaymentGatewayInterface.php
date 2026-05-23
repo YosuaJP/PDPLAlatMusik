@@ -19,4 +19,12 @@ interface PaymentGatewayInterface
      * ]
      */
     public function createPayment(Order $order): array;
+
+    /**
+     * Mendapatkan nama gerbang pembayaran.
+     *
+     * @return string
+     */
+    public function getGatewayName(): string;
 }
+
