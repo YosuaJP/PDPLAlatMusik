@@ -19,7 +19,13 @@ class AppServiceProvider extends ServiceProvider
         // Repository Pattern — binding interface ke implementasi Eloquent
         $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
         $this->app->bind(OrderRepositoryInterface::class, EloquentOrderRepository::class);
-        $this->app->bind(\App\Contracts\PaymentGatewayInterface::class, \App\Services\XenditService::class);
+        $this->app->bind(\App\Contracts\PaymentGatewayInterface::class, function ($app) {
+            $gateway = env('PAYMENT_GATEWAY', 'xendit');
+            if ($gateway === 'midtrans') {
+                return $app->make(\App\Services\MidtransService::class);
+            }
+            return $app->make(\App\Services\XenditService::class);
+        });
     }
 
     /**

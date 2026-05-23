@@ -87,7 +87,7 @@ class OrderService
                 'external_id'    => $paymentData['external_id'],
                 'gateway_ref'    => $paymentData['gateway_ref'],
                 'payment_url'    => $paymentData['payment_url'],
-                'payment_method' => 'xendit',
+                'payment_method' => $this->paymentGateway->getGatewayName(),
                 'gateway_status' => 'pending',
                 'payment_status' => 'pending',
                 'amount'         => $paymentData['amount'],

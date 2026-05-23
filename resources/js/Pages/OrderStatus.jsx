@@ -1,4 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 function Navbar({ auth, cartCount }) {
     return (
@@ -30,6 +31,45 @@ function Navbar({ auth, cartCount }) {
 }
 
 export default function OrderStatus({ order }) {
+    const [isWebhookLoading, setIsWebhookLoading] = useState(false);
+    const [webhookMessage, setWebhookMessage] = useState(null);
+
+    const triggerWebhook = async (status) => {
+        setIsWebhookLoading(true);
+        setWebhookMessage(null);
+
+        try {
+            const payload = {
+                order_id: order.payment.external_id,
+                transaction_status: status,
+                payment_type: status === 'settlement' ? 'qris' : 'bank_transfer',
+                gross_amount: order.final_amount.toString(),
+            };
+
+            const response = await fetch(route('payment.webhook.midtrans'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setWebhookMessage({ type: 'success', text: `Webhook ${status} sukses terkirim!` });
+                router.reload({ preserveScroll: true });
+            } else {
+                setWebhookMessage({ type: 'error', text: data.message || 'Gagal memproses webhook.' });
+            }
+        } catch (err) {
+            setWebhookMessage({ type: 'error', text: 'Koneksi error saat mengirim webhook.' });
+        } finally {
+            setIsWebhookLoading(false);
+        }
+    };
+
     const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
 
     // Pemetaan warna badge status pesanan
@@ -280,9 +320,145 @@ export default function OrderStatus({ order }) {
                                         boxSizing: 'border-box'
                                     }}
                                 >
-                                    <span>Simulasikan Bayar Sekarang</span>
+                                    <span>{order.payment.payment_url.includes('payment/simulate') ? 'Simulasikan Bayar Sekarang' : 'Bayar Sekarang (Midtrans Ril)'}</span>
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                 </a>
+                            </div>
+                        )}
+
+                        {/* Developer Sandbox Tools (Hanya muncul jika payment method adalah Midtrans & status pending) */}
+                        {order.status === 'pending' && order.payment?.payment_method === 'midtrans' && (
+                            <div style={{
+                                background: 'linear-gradient(135deg, #1e293b, #0f172a)',
+                                borderRadius: 16,
+                                padding: 20,
+                                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+                                border: '1px solid #334155',
+                                color: '#f8fafc'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                    <span style={{ fontSize: 18 }}>🛠️</span>
+                                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#38bdf8', letterSpacing: '-0.3px' }}>
+                                        Developer Sandbox Tools
+                                    </h3>
+                                </div>
+                                
+                                <p style={{ margin: '0 0 14px 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+                                    Gunakan panel ini untuk mensimulasikan integrasi Midtrans Sandbox secara ril atau instan di lokal.
+                                </p>
+
+                                {order.payment.payment_url.includes('payment/simulate') ? (
+                                    <div style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        fontSize: 10,
+                                        color: '#fca5a5',
+                                        marginBottom: 14,
+                                        lineHeight: 1.4
+                                    }}>
+                                        <strong>⚠️ Peringatan Fallback:</strong> MIDTRANS_SERVER_KEY belum diatur di berkas .env Anda. Sistem menggunakan simulator tiruan lokal.
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        background: 'rgba(56, 189, 248, 0.1)',
+                                        border: '1px solid rgba(56, 189, 248, 0.2)',
+                                        borderRadius: 8,
+                                        padding: '8px 10px',
+                                        fontSize: 10,
+                                        color: '#7dd3fc',
+                                        marginBottom: 14,
+                                        lineHeight: 1.4
+                                    }}>
+                                        <strong>🔗 Midtrans Terhubung Ril:</strong> Pembayaran Anda menggunakan API Snap Sandbox asli. Klik <strong>Bayar Sekarang (Midtrans Ril)</strong> untuk melakukan pembayaran.
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {/* Link simulator Midtrans */}
+                                    {!order.payment.payment_url.includes('payment/simulate') && (
+                                        <a
+                                            href="https://simulator.sandbox.midtrans.com/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 6,
+                                                padding: '8px 0',
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                border: '1px solid #475569',
+                                                color: '#e2e8f0',
+                                                borderRadius: 8,
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                textDecoration: 'none'
+                                            }}
+                                        >
+                                            <span>🏦 Buka Simulator Sandbox Midtrans</span>
+                                        </a>
+                                    )}
+
+                                    {/* Divider */}
+                                    <div style={{ height: 1, background: '#334155', margin: '4px 0' }} />
+
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        Simulasi Webhook Instan (Tanpa ngrok)
+                                    </span>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                        <button
+                                            disabled={isWebhookLoading}
+                                            onClick={() => triggerWebhook('settlement')}
+                                            style={{
+                                                padding: '8px 4px',
+                                                background: '#059669',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: 6,
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                cursor: isWebhookLoading ? 'not-allowed' : 'pointer',
+                                                opacity: isWebhookLoading ? 0.6 : 1
+                                            }}
+                                        >
+                                            {isWebhookLoading ? '...' : '✅ Sukses (Paid)'}
+                                        </button>
+                                        <button
+                                            disabled={isWebhookLoading}
+                                            onClick={() => triggerWebhook('expire')}
+                                            style={{
+                                                padding: '8px 4px',
+                                                background: '#dc2626',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: 6,
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                cursor: isWebhookLoading ? 'not-allowed' : 'pointer',
+                                                opacity: isWebhookLoading ? 0.6 : 1
+                                            }}
+                                        >
+                                            {isWebhookLoading ? '...' : '❌ Gagal (Expired)'}
+                                        </button>
+                                    </div>
+                                    
+                                    {webhookMessage && (
+                                        <div style={{
+                                            marginTop: 6,
+                                            fontSize: 10,
+                                            color: webhookMessage.type === 'success' ? '#34d399' : '#f87171',
+                                            background: 'rgba(0,0,0,0.2)',
+                                            padding: '4px 8px',
+                                            borderRadius: 6,
+                                            textAlign: 'center'
+                                        }}>
+                                            {webhookMessage.text}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
