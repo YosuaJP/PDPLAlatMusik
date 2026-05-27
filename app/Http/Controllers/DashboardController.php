@@ -36,7 +36,7 @@ class DashboardController extends Controller
                 'total_orders'    => Order::count(),
                 'total_revenue'   => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
                 'total_products'  => Product::where('active', true)->count(),
-                'pending_orders'  => Order::where('status', 'pending')->count(),
+                'pending_orders'  => Order::whereIn('status', ['pending', 'processing'])->count(),
                 'total_customers' => User::where('role', 'user')->count(),
             ];
 
@@ -70,7 +70,7 @@ class DashboardController extends Controller
                 ]);
 
             // Orders needing processing
-            $pendingOrdersList = Order::with('user')
+            $pendingOrdersList = Order::with(['user', 'items.product'])
                 ->whereIn('status', ['pending', 'processing'])
                 ->orderByDesc('created_at')
                 ->limit(5)
@@ -78,9 +78,17 @@ class DashboardController extends Controller
                 ->map(fn ($o) => [
                     'order_id'    => $o->order_id,
                     'user_name'   => $o->user?->name ?? 'Pelanggan',
+                    'shipping_address' => $o->shipping_address ?? 'Alamat tidak tersedia',
+                    'courier_code' => strtoupper($o->courier_code ?? 'Kurir'),
                     'final_amount'=> (float) $o->final_amount,
                     'status'      => $o->status,
                     'created_at'  => $o->created_at->diffForHumans(),
+                    'items'       => $o->items->map(fn($item) => [
+                        'product_name' => $item->product?->name ?? 'Produk Dihapus',
+                        'quantity'     => $item->quantity,
+                        'price'        => (float) $item->price,
+                        'image_url'    => $item->product?->image_url,
+                    ]),
                 ]);
 
             return Inertia::render('Dashboard', [

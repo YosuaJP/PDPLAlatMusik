@@ -38,7 +38,7 @@ const navItems = [
     },
     {
         label: 'Pencatatan Stok',
-        href: '/stock',
+        href: '/admin/stocks',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -48,7 +48,7 @@ const navItems = [
     },
     {
         label: 'Promo & Diskon',
-        href: '/promos',
+        href: '/admin/promos',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -58,7 +58,7 @@ const navItems = [
     },
     {
         label: 'Performa Produk',
-        href: '/performance',
+        href: '/admin/product-performance',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -68,7 +68,7 @@ const navItems = [
     },
     {
         label: 'Laporan',
-        href: '/reports',
+        href: '/admin/reports',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -78,7 +78,7 @@ const navItems = [
     },
     {
         label: 'Pesanan',
-        href: '/orders',
+        href: '/admin/orders',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -90,7 +90,7 @@ const navItems = [
     },
     {
         label: 'Refund',
-        href: '/refunds',
+        href: '/admin/refunds',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -100,7 +100,7 @@ const navItems = [
     },
     {
         label: 'Daftar User',
-        href: '/users',
+        href: '/admin/users',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

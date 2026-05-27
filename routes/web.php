@@ -2,6 +2,13 @@
 
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\AdminProductController;
+use App\Http\Controllers\AdminStockController;
+use App\Http\Controllers\AdminPromoController;
+use App\Http\Controllers\AdminPerformanceController;
+use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminOrderController;
+use App\Http\Controllers\AdminRefundController;
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
@@ -28,6 +35,31 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/products/{id}', [AdminProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
 
+    Route::prefix('admin')->group(function () {
+        Route::get('/stocks', [AdminStockController::class, 'index'])->name('admin.stocks.index');
+        Route::post('/stocks', [AdminStockController::class, 'store'])->name('admin.stocks.store');
+
+        Route::get('/promos', [AdminPromoController::class, 'index'])->name('admin.promos.index');
+        Route::post('/promos', [AdminPromoController::class, 'store'])->name('admin.promos.store');
+        Route::put('/promos/{id}', [AdminPromoController::class, 'update'])->name('admin.promos.update');
+        Route::patch('/promos/{id}/toggle', [AdminPromoController::class, 'toggleActive'])->name('admin.promos.toggle');
+        Route::delete('/promos/{id}', [AdminPromoController::class, 'destroy'])->name('admin.promos.destroy');
+
+        Route::get('/product-performance', [AdminPerformanceController::class, 'index'])->name('admin.performance.index');
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('admin.reports.index');
+        
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+        Route::post('/orders/{id}/process', [AdminOrderController::class, 'process'])->name('admin.orders.process');
+
+        Route::get('/refunds', [AdminRefundController::class, 'index'])->name('admin.refunds.index');
+        Route::post('/refunds/{id}/process', [AdminRefundController::class, 'process'])->name('admin.refunds.process');
+        
+        Route::get('/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::put('/users/{id}', [AdminUserController::class, 'update'])->name('admin.users.update');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+    });
+
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::patch('/cart/update/{cartItemId}', [CartController::class, 'update'])->name('cart.update');
@@ -41,6 +73,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{id}/refund', [OrderController::class, 'submitRefund'])->name('orders.refund');
+    Route::post('/orders/{id}/receive', [OrderController::class, 'markAsReceived'])->name('orders.receive');
 
     Route::get('/payment/checkout/{external_id}', [PaymentController::class, 'checkoutPage'])->name('payment.checkout');
 

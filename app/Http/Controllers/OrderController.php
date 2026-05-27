@@ -17,26 +17,90 @@ class OrderController extends Controller
         $userId = $user->user_id ?? $user->id;
 
         $orders = Order::where('user_id', $userId)
-            ->with(['items', 'payment'])
+            ->where('status', '!=', 'pending')
+            ->with(['items.product', 'payment'])
             ->orderByDesc('created_at')
             ->get()
             ->map(function ($order) {
                 return [
                     'order_id'          => $order->order_id,
-                    'created_at'        => $order->created_at->format('d M Y, H:i'),
-                    'created_at_raw'    => $order->created_at->toISOString(), // untuk countdown
+                    'created_at'        => $order->created_at->translatedFormat('d F Y \p\u\k\u\l H:i'),
+                    'created_at_raw'    => $order->created_at->toISOString(),
                     'final_amount'      => (float) $order->final_amount,
                     'status'            => $order->status,
-                    'items_count'       => $order->items->sum('quantity'),
-                    'payment_status'    => $order->payment->payment_status ?? 'pending',
-                    'payment_external_id' => $order->payment->external_id ?? null, // untuk resume payment
+                    'payment_external_id' => $order->payment->external_id ?? null,
+                    'items'             => $order->items->map(fn($item) => [
+                        'product_name' => $item->product_name,
+                        'quantity'     => $item->quantity,
+                        'price_each'   => (float) $item->price_each,
+                        'image_url'    => $item->product->image_url ?? null,
+                    ]),
                 ];
             });
 
-        return Inertia::render('UserDashboard', [
-            // Kita bisa bagikan data order ke UserDashboard agar dinamis!
+        return Inertia::render('UserOrders', [
             'orders' => $orders,
         ]);
+    }
+
+    public function markAsReceived($id)
+    {
+        $user = auth()->user();
+        $userId = $user->user_id ?? $user->id;
+
+        $order = Order::where('user_id', $userId)->findOrFail($id);
+        if ($order->status !== 'shipped') {
+            return back()->withErrors(['message' => 'Hanya pesanan dalam pengiriman yang bisa diterima.']);
+        }
+
+        $order->update(['status' => 'delivered']);
+        
+        \App\Models\OrderStatusHistory::create([
+            'order_id'   => $order->order_id,
+            'old_status' => 'shipped',
+            'new_status' => 'delivered',
+            'changed_by' => $userId,
+            'changed_at' => now(),
+            'note'       => 'Pesanan diterima oleh pelanggan.',
+        ]);
+
+        return back()->with('success', 'Pesanan telah diterima.');
+    }
+
+    public function submitRefund(Request $request, $id)
+    {
+        $user = auth()->user();
+        $userId = $user->user_id ?? $user->id;
+
+        $order = Order::where('user_id', $userId)->findOrFail($id);
+        
+        $request->validate([
+            'reason'   => 'required|string',
+            'images.*' => 'image|max:2048', // max 2MB
+            'images'   => 'max:3',
+            'video'    => 'mimes:mp4,mov,avi,wmv|max:10240', // max 10MB
+        ]);
+
+        $evidenceUrls = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $img) {
+                $path = $img->store('refunds', 'public');
+                $evidenceUrls[] = asset('storage/' . $path);
+            }
+        }
+        if ($request->hasFile('video')) {
+            $path = $request->file('video')->store('refunds', 'public');
+            $evidenceUrls[] = asset('storage/' . $path);
+        }
+
+        \App\Models\Refund::create([
+            'order_id'      => $order->order_id,
+            'reason'        => $request->reason,
+            'evidence_urls' => count($evidenceUrls) > 0 ? json_encode($evidenceUrls) : null,
+            'status'        => 'pending',
+        ]);
+
+        return back()->with('success', 'Permintaan refund berhasil diajukan.');
     }
 
     /**
