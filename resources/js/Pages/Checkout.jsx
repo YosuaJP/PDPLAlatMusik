@@ -45,6 +45,52 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
+    // State form alamat inline
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [editingAddressId, setEditingAddressId] = useState(null);
+    const [addressForm, setAddressForm] = useState({
+        label: '', address: '', city: '', postal_code: '', is_default: false
+    });
+    const [addressSubmitting, setAddressSubmitting] = useState(false);
+
+    const openAddAddress = () => {
+        setEditingAddressId(null);
+        setAddressForm({ label: '', address: '', city: '', postal_code: '', is_default: false });
+        setShowAddressForm(true);
+    };
+
+    const openEditAddress = (e, addr) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingAddressId(addr.address_id);
+        setAddressForm({
+            label: addr.label, address: addr.address, city: addr.city, postal_code: addr.postal_code, is_default: addr.is_default
+        });
+        setShowAddressForm(true);
+    };
+
+    const saveAddress = (e) => {
+        e.preventDefault();
+        setAddressSubmitting(true);
+        if (editingAddressId) {
+            router.put(route('addresses.update', editingAddressId), addressForm, {
+                onSuccess: () => {
+                    setShowAddressForm(false);
+                    setAddressSubmitting(false);
+                },
+                onError: () => setAddressSubmitting(false)
+            });
+        } else {
+            router.post(route('addresses.store'), addressForm, {
+                onSuccess: () => {
+                    setShowAddressForm(false);
+                    setAddressSubmitting(false);
+                },
+                onError: () => setAddressSubmitting(false)
+            });
+        }
+    };
+
     // Kalkulasi subtotal
     const subtotal = cartItems.reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
 
@@ -140,7 +186,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                 <div style={{ border: '2px dashed #ddd', borderRadius: 12, padding: 20, textAlign: 'center', color: '#666' }}>
                                     <p style={{ margin: '0 0 10px 0', fontSize: 14 }}>Belum ada alamat terdaftar.</p>
                                     {/* Link ke profil untuk menambahkan alamat */}
-                                    <Link href={route('profile.edit')} style={{ color: '#3a7d44', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>+ Tambah Alamat Baru</Link>
+                                    <button onClick={openAddAddress} style={{ color: '#3a7d44', fontWeight: 700, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}>+ Tambah Alamat Baru</button>
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -165,17 +211,63 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                                 style={{ marginTop: 3, accentColor: '#3a7d44' }}
                                             />
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                    <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>{addr.label}</span>
-                                                    {addr.is_default && (
-                                                        <span style={{ background: '#e2e8f0', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>Default</span>
-                                                    )}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>{addr.label}</span>
+                                                        {addr.is_default && (
+                                                            <span style={{ background: '#e2e8f0', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>Default</span>
+                                                        )}
+                                                    </div>
+                                                    <button type="button" onClick={(e) => openEditAddress(e, addr)} style={{ background: 'none', border: 'none', color: '#3a7d44', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
                                                 </div>
                                                 <p style={{ margin: 0, fontSize: 13, color: '#555', lineHeight: 1.5 }}>{addr.address}, {addr.city}</p>
                                                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>Kode Pos: {addr.postal_code}</p>
                                             </div>
                                         </label>
                                     ))}
+                                    <button onClick={openAddAddress} style={{ alignSelf: 'flex-start', marginTop: 8, color: '#3a7d44', fontWeight: 700, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        Tambah Alamat Baru
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Modal Form Alamat Inline */}
+                            {showAddressForm && (
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                                    <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, padding: 24, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                                        <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 800 }}>{editingAddressId ? 'Edit Alamat' : 'Tambah Alamat Baru'}</h3>
+                                        <form onSubmit={saveAddress} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Label Alamat (Contoh: Rumah, Kantor)</label>
+                                                <input type="text" required value={addressForm.label} onChange={e => setAddressForm({...addressForm, label: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Alamat Lengkap</label>
+                                                <textarea required value={addressForm.address} onChange={e => setAddressForm({...addressForm, address: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', minHeight: 80, boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 16 }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Kota</label>
+                                                    <input type="text" required value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                                </div>
+                                                <div style={{ width: 120 }}>
+                                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Kode Pos</label>
+                                                    <input type="text" required value={addressForm.postal_code} onChange={e => setAddressForm({...addressForm, postal_code: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                                </div>
+                                            </div>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={addressForm.is_default} onChange={e => setAddressForm({...addressForm, is_default: e.target.checked})} style={{ accentColor: '#3a7d44' }} />
+                                                Jadikan sebagai alamat utama
+                                            </label>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
+                                                <button type="button" onClick={() => setShowAddressForm(false)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+                                                <button type="submit" disabled={addressSubmitting} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#3a7d44', color: '#fff', fontWeight: 600, cursor: addressSubmitting ? 'not-allowed' : 'pointer' }}>
+                                                    {addressSubmitting ? 'Menyimpan...' : 'Simpan'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             )}
                         </div>

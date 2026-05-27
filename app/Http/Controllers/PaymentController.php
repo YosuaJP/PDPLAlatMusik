@@ -13,6 +13,53 @@ use Inertia\Inertia;
 class PaymentController extends Controller
 {
     /**
+     * Halaman intermediate "Complete Your Payment" sebelum membuka Midtrans Snap.
+     */
+    public function checkoutPage($external_id)
+    {
+        $user = auth()->user();
+        $userId = $user->user_id ?? $user->id;
+
+        $payment = Payment::where('external_id', $external_id)
+            ->with(['order.user', 'order.items.product'])
+            ->firstOrFail();
+
+        // Pastikan hanya pemilik order yang bisa akses
+        if ($payment->order->user_id !== $userId) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        }
+
+        return Inertia::render('CheckoutPayment', [
+            'payment' => [
+                'payment_id'     => $payment->payment_id,
+                'external_id'    => $payment->external_id,
+                'amount'         => (float) $payment->amount,
+                'payment_status' => $payment->payment_status,
+                'payment_method' => $payment->payment_method,
+                'snap_token'     => $payment->gateway_ref, // Snap Token dari Midtrans
+                'payment_url'    => $payment->payment_url,
+                'created_at'     => \Carbon\Carbon::parse($payment->created_at)->toISOString(),
+                'order'          => [
+                    'order_id'        => $payment->order->order_id,
+                    'final_amount'    => (float) $payment->order->final_amount,
+                    'shipping_address'=> $payment->order->shipping_address,
+                    'user_name'       => $payment->order->user->name ?? 'Pembeli',
+                    'items'           => $payment->order->items->map(function ($item) {
+                        return [
+                            'product_name' => $item->product_name,
+                            'quantity'     => $item->quantity,
+                            'price_each'   => (float) $item->price_each,
+                            'image_url'    => $item->product->image_url ?? null,
+                        ];
+                    }),
+                ],
+            ],
+            'clientKey' => config('services.midtrans.client_key'),
+            'isSandbox'  => !config('services.midtrans.is_production', false),
+        ]);
+    }
+
+    /**
      * Tampilkan halaman simulasi pembayaran.
      */
     public function simulate($external_id)
@@ -174,8 +221,8 @@ class PaymentController extends Controller
         $signatureKey = $payload['signature_key'] ?? '';
         $serverKey = config('services.midtrans.server_key');
 
-        // Bypass validasi hanya pada testing jika signature_key kosong
-        $bypassSignature = app()->environment('testing') && empty($signatureKey);
+        // Bypass validasi pada testing atau local environment (untuk fitur Cheat Mock Webhook)
+        $bypassSignature = (app()->environment('testing') || app()->isLocal()) && empty($signatureKey);
 
         if (!$bypassSignature && !empty($serverKey)) {
             $expectedSignature = hash('sha512', $externalId . $statusCode . $grossAmount . $serverKey);
@@ -277,5 +324,123 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'Callback processed successfully']);
+    }
+
+    /**
+     * Menangani webhook/callback dari Xendit (Invoice API).
+     * Xendit mengirim POST ke endpoint ini saat status pembayaran berubah.
+     */
+    public function handleXenditWebhook(Request $request)
+    {
+        // 1. Verifikasi X-CALLBACK-TOKEN dari header
+        $incomingToken = $request->header('x-callback-token', '');
+        $callbackToken = config('services.xendit.callback_token', '');
+
+        // Jika token sudah diset, wajib cocok
+        if (!empty($callbackToken) && !hash_equals($callbackToken, $incomingToken)) {
+            return response()->json(['message' => 'Unauthorized: Invalid callback token.'], 403);
+        }
+
+        $payload = $request->all();
+
+        // 2. Ambil external_id dari payload Xendit
+        $externalId = $payload['external_id'] ?? null;
+        if (!$externalId) {
+            return response()->json(['message' => 'Invalid payload: missing external_id.'], 400);
+        }
+
+        // 3. Cari data payment di database
+        $payment = Payment::where('external_id', $externalId)
+            ->with(['order.items.product'])
+            ->first();
+
+        if (!$payment) {
+            return response()->json(['message' => 'Payment not found.'], 404);
+        }
+
+        if ($payment->payment_status !== 'pending') {
+            return response()->json(['message' => 'Payment already processed.'], 200);
+        }
+
+        // 4. Map status Xendit → status internal
+        // Xendit status: PAID, SETTLED, EXPIRED
+        $xenditStatus   = strtoupper($payload['status'] ?? '');
+        $paymentStatus  = 'pending';
+        $gatewayStatus  = 'PENDING';
+
+        if (in_array($xenditStatus, ['PAID', 'SETTLED'])) {
+            $paymentStatus = 'paid';
+            $gatewayStatus = 'SUCCESS';
+        } elseif ($xenditStatus === 'EXPIRED') {
+            $paymentStatus = 'failed';
+            $gatewayStatus = 'EXPIRED';
+        }
+
+        // 5. Proses update jika status sudah final
+        if ($paymentStatus !== 'pending') {
+            DB::transaction(function () use ($payment, $paymentStatus, $gatewayStatus, $payload) {
+                $order         = $payment->order;
+                $oldOrderStatus = $order->status;
+
+                if ($paymentStatus === 'paid') {
+                    $payment->update([
+                        'payment_status'  => 'paid',
+                        'gateway_status'  => $gatewayStatus,
+                        'paid_amount'     => $payment->amount,
+                        'gateway_fee'     => $payload['fees_paid_amount'] ?? 0,
+                        'paid_at'         => now(),
+                        'webhook_payload' => json_encode($payload),
+                    ]);
+
+                    $order->update(['status' => 'processing']);
+
+                    OrderStatusHistory::create([
+                        'order_id'   => $order->order_id,
+                        'changed_by' => $order->user_id,
+                        'old_status' => $oldOrderStatus,
+                        'new_status' => 'processing',
+                        'note'       => 'Pembayaran lunas dikonfirmasi otomatis melalui Webhook Xendit (Status: ' . $payload['status'] . ').',
+                        'changed_at' => now(),
+                    ]);
+
+                } else {
+                    $payment->update([
+                        'payment_status'  => 'failed',
+                        'gateway_status'  => $gatewayStatus,
+                        'paid_amount'     => 0.00,
+                        'webhook_payload' => json_encode($payload),
+                    ]);
+
+                    $order->update(['status' => 'cancelled']);
+
+                    OrderStatusHistory::create([
+                        'order_id'   => $order->order_id,
+                        'changed_by' => $order->user_id,
+                        'old_status' => $oldOrderStatus,
+                        'new_status' => 'cancelled',
+                        'note'       => 'Invoice Xendit kedaluwarsa (EXPIRED). Pesanan otomatis dibatalkan.',
+                        'changed_at' => now(),
+                    ]);
+
+                    // Kembalikan stok produk
+                    foreach ($order->items as $item) {
+                        $product = $item->product;
+                        $product->increment('stock_qty', $item->quantity);
+
+                        StockMovement::create([
+                            'product_id'    => $product->product_id,
+                            'created_by'    => $order->user_id,
+                            'order_id'      => $order->order_id,
+                            'movement_type' => 'in',
+                            'quantity'      => $item->quantity,
+                            'notes'         => "Pengembalian stok karena invoice Xendit expired pada pesanan #{$order->order_id}",
+                            'created_at'    => now(),
+                        ]);
+                    }
+                }
+            });
+        }
+
+        return response()->json(['message' => 'Xendit webhook processed successfully.'], 200);
     }
 }

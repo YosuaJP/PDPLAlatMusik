@@ -41,9 +41,9 @@ class CheckoutController extends Controller
 
         // Ambil daftar promo yang aktif
         $promos = Promo::where('active', true)
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereNull('end_date')
-                  ->orWhere('end_date', '>=', now());
+                    ->orWhere('end_date', '>=', now());
             })
             ->get();
 
@@ -51,14 +51,14 @@ class CheckoutController extends Controller
         $cartItems = $cart->items->map(function ($item) {
             return [
                 'cart_item_id' => $item->cart_item_id,
-                'product_id'   => $item->product_id,
-                'quantity'     => $item->quantity,
-                'price_each'   => (float) $item->price_each,
-                'product'      => $item->product ? [
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price_each' => (float) $item->price_each,
+                'product' => $item->product ? [
                     'product_id' => $item->product->product_id,
-                    'name'       => $item->product->name,
-                    'price'      => (float) $item->product->price,
-                    'image_url'  => $item->product->image_url,
+                    'name' => $item->product->name,
+                    'price' => (float) $item->product->price,
+                    'image_url' => $item->product->image_url,
                 ] : null,
             ];
         });
@@ -72,14 +72,14 @@ class CheckoutController extends Controller
 
         return Inertia::render('Checkout', [
             'cartItems' => $cartItems,
-            'cart'      => [
-                'cart_id'  => $cart->cart_id,
+            'cart' => [
+                'cart_id' => $cart->cart_id,
                 'promo_id' => $cart->promo_id,
-                'promo'    => $cart->promo,
+                'promo' => $cart->promo,
             ],
             'addresses' => $addresses,
-            'promos'    => $promos,
-            'couriers'  => $couriers,
+            'promos' => $promos,
+            'couriers' => $couriers,
         ]);
     }
 
@@ -89,11 +89,11 @@ class CheckoutController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'address_id'    => 'required|exists:user_addresses,address_id',
-            'courier_code'  => 'required|string',
+            'address_id' => 'required|exists:user_addresses,address_id',
+            'courier_code' => 'required|string',
             'shipping_cost' => 'required|numeric|min:0',
-            'notes'         => 'nullable|string',
-            'promo_id'      => 'nullable|exists:promos,promo_id',
+            'notes' => 'nullable|string',
+            'promo_id' => 'nullable|exists:promos,promo_id',
         ]);
 
         $user = auth()->user();
@@ -111,12 +111,12 @@ class CheckoutController extends Controller
 
         try {
             $orderData = [
-                'user_id'       => $userId,
-                'address_id'    => $request->address_id,
-                'promo_id'      => $request->promo_id,
+                'user_id' => $userId,
+                'address_id' => $request->address_id,
+                'promo_id' => $request->promo_id,
                 'shipping_cost' => (float) $request->shipping_cost,
-                'courier_code'  => $request->courier_code,
-                'notes'         => $request->notes,
+                'courier_code' => $request->courier_code,
+                'notes' => $request->notes,
             ];
 
             // Panggil service untuk membuat order dengan DB Transaction & lock stok
@@ -125,9 +125,9 @@ class CheckoutController extends Controller
             // Muat relasi payment
             $order->load('payment');
 
-            // Redirect Inertia ke Halaman Pembayaran/Invoice
-            if ($order->payment && $order->payment->payment_url) {
-                return Inertia::location($order->payment->payment_url);
+            // Redirect ke halaman "Complete Your Payment" sebagai intermediate page
+            if ($order->payment && $order->payment->external_id) {
+                return redirect()->route('payment.checkout', $order->payment->external_id);
             }
 
             return redirect()->route('orders.show', $order->order_id)

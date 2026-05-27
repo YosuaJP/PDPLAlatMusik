@@ -22,12 +22,14 @@ class OrderController extends Controller
             ->get()
             ->map(function ($order) {
                 return [
-                    'order_id'        => $order->order_id,
-                    'created_at'      => $order->created_at->format('d M Y, H:i'),
-                    'final_amount'    => (float) $order->final_amount,
-                    'status'          => $order->status,
-                    'items_count'     => $order->items->sum('quantity'),
-                    'payment_status'  => $order->payment->payment_status ?? 'pending',
+                    'order_id'          => $order->order_id,
+                    'created_at'        => $order->created_at->format('d M Y, H:i'),
+                    'created_at_raw'    => $order->created_at->toISOString(), // untuk countdown
+                    'final_amount'      => (float) $order->final_amount,
+                    'status'            => $order->status,
+                    'items_count'       => $order->items->sum('quantity'),
+                    'payment_status'    => $order->payment->payment_status ?? 'pending',
+                    'payment_external_id' => $order->payment->external_id ?? null, // untuk resume payment
                 ];
             });
 
@@ -89,6 +91,7 @@ class OrderController extends Controller
                 'external_id'    => $order->payment->external_id,
                 'payment_url'    => $order->payment->payment_url,
                 'payment_status' => $order->payment->payment_status,
+                'payment_method' => $order->payment->payment_method,
                 'amount'         => (float) $order->payment->amount,
                 'paid_at'        => $order->payment->paid_at ? $order->payment->paid_at->format('d M Y, H:i') : null,
             ] : null,

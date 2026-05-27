@@ -33,11 +33,44 @@ function Navbar({ auth, cartCount }) {
 export default function OrderStatus({ order }) {
     const [isWebhookLoading, setIsWebhookLoading] = useState(false);
     const [webhookMessage, setWebhookMessage] = useState(null);
+    const [loadingPercent, setLoadingPercent] = useState(0);
+    const [loadingText, setLoadingText] = useState('');
+    const [simulatedStatus, setSimulatedStatus] = useState('');
 
-    const triggerWebhook = async (status) => {
+    const triggerWebhook = (status) => {
         setIsWebhookLoading(true);
+        setSimulatedStatus(status);
         setWebhookMessage(null);
+        setLoadingPercent(0);
+        setLoadingText('Menginisialisasi webhook...');
 
+        let percent = 0;
+        const interval = setInterval(() => {
+            percent += 10;
+            setLoadingPercent(percent);
+            
+            if (percent === 20) {
+                setLoadingText('Menyiapkan payload notifikasi asinkron...');
+            } else if (percent === 40) {
+                setLoadingText(status === 'settlement' 
+                    ? 'Memverifikasi status transaksi (SETTLEMENT) via API Sandbox...' 
+                    : 'Mengirimkan notifikasi kegagalan transaksi (EXPIRED)...'
+                );
+            } else if (percent === 60) {
+                setLoadingText('Menjalankan database transaction aman (lockForUpdate)...');
+            } else if (percent === 80) {
+                setLoadingText(status === 'settlement' 
+                    ? 'Memperbarui status pesanan menjadi PROCESSING & mencatat riwayat...' 
+                    : 'Mengembalikan stok produk & mencatat mutasi pengembalian...'
+                );
+            } else if (percent >= 100) {
+                clearInterval(interval);
+                executeWebhookCall(status);
+            }
+        }, 300);
+    };
+
+    const executeWebhookCall = async (status) => {
         try {
             const payload = {
                 order_id: order.payment.external_id,
@@ -94,8 +127,8 @@ export default function OrderStatus({ order }) {
     const paymentStatus = order.payment?.payment_status === 'paid'
         ? { bg: '#e6f4ea', color: '#137333', label: 'Lunas' }
         : order.payment?.payment_status === 'failed'
-        ? { bg: '#fce8e6', color: '#c5221f', label: 'Gagal' }
-        : { bg: '#fef7e0', color: '#b06000', label: 'Belum Dibayar' };
+            ? { bg: '#fce8e6', color: '#c5221f', label: 'Gagal' }
+            : { bg: '#fef7e0', color: '#b06000', label: 'Belum Dibayar' };
 
     // Dapatkan icon/bullet timeline berdasarkan status baru
     const getTimelineBullet = (status) => {
@@ -120,8 +153,57 @@ export default function OrderStatus({ order }) {
             <Head title={`Pesanan #${order.order_id} — NadaKito`} />
             <Navbar auth={null} cartCount={0} />
 
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px', position: 'relative' }}>
                 
+                {/* Full-page loading overlay for Webhook Mock */}
+                {isWebhookLoading && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0, left: 0, width: '100%', height: '100%',
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeIn 0.3s ease forwards'
+                    }}>
+                        <style dangerouslySetInnerHTML={{__html: `
+                            @keyframes spinCircle {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            @keyframes fadeIn {
+                                from { opacity: 0; }
+                                to { opacity: 1; }
+                            }
+                        `}} />
+                        <div style={{ width: 90, height: 90, position: 'relative', marginBottom: 28 }}>
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                border: '5px solid rgba(59,130,246,0.1)', borderTopColor: '#38bdf8',
+                                borderRadius: '50%', animation: 'spinCircle 1s linear infinite'
+                            }} />
+                            <div style={{ fontSize: 36, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                                {simulatedStatus === 'settlement' ? '✅' : '❌'}
+                            </div>
+                        </div>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>
+                            {simulatedStatus === 'settlement' ? 'Memproses Konfirmasi Pembayaran...' : 'Membatalkan Transaksi...'}
+                        </h3>
+                        <p style={{ margin: '0 0 32px 0', fontSize: 14, color: '#94a3b8', maxWidth: 450, lineHeight: 1.7, textAlign: 'center' }}>
+                            {simulatedStatus === 'settlement'
+                                ? 'Midtrans (Sandbox) mengirimkan notifikasi webhook ke server NadaKito. Status pesanan sedang diperbarui secara aman.'
+                                : 'Transaksi dibatalkan via webhook (Expired). Stok produk sedang dikembalikan ke database.'}
+                        </p>
+                        <div style={{ width: '100%', maxWidth: 400, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ height: '100%', width: `${loadingPercent}%`, background: 'linear-gradient(90deg, #3b82f6, #06b6d4)', borderRadius: 4, transition: 'width 0.3s ease-out' }} />
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1', fontWeight: 600, fontStyle: 'italic' }}>{loadingText}</p>
+                    </div>
+                )}
+
                 {/* Header detail */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
                     <div>
@@ -159,10 +241,10 @@ export default function OrderStatus({ order }) {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 30, alignItems: 'start' }}>
-                    
+
                     {/* LEFT COLUMN: Order Details & Timeline */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        
+
                         {/* 1. Status Overview Card */}
                         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
@@ -292,16 +374,16 @@ export default function OrderStatus({ order }) {
 
                     {/* RIGHT COLUMN: Summary & Payment Actions */}
                     <div style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        
+
                         {/* Action Bayar (hanya tampil jika PENDING) */}
                         {order.status === 'pending' && order.payment && (
-                            <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 14px rgba(245,158,11,0.06)', border: '1px solid #fde68a', background: '#fffbeb' }}>
+                            <div style={{ borderRadius: 16, padding: 20, boxShadow: '0 4px 14px rgba(245,158,11,0.06)', border: '1px solid #fde68a', background: '#fffbeb' }}>
                                 <h3 style={{ margin: '0 0 8px 0', fontSize: 15, fontWeight: 800, color: '#b45309' }}>Menunggu Pembayaran</h3>
                                 <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#d97706', lineHeight: 1.5 }}>
                                     Segera selesaikan pembayaran tagihan Anda agar pesanan dapat langsung kami proses dan kirimkan.
                                 </p>
                                 <a
-                                    href={order.payment.payment_url}
+                                    href={route('payment.checkout', order.payment.external_id)}
                                     style={{
                                         display: 'flex',
                                         width: '100%',
@@ -320,7 +402,7 @@ export default function OrderStatus({ order }) {
                                         boxSizing: 'border-box'
                                     }}
                                 >
-                                    <span>{order.payment.payment_url.includes('payment/simulate') ? 'Simulasikan Bayar Sekarang' : 'Bayar Sekarang (Midtrans Ril)'}</span>
+                                    <span>Bayar Sekarang</span>
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                 </a>
                             </div>
@@ -342,38 +424,23 @@ export default function OrderStatus({ order }) {
                                         Developer Sandbox Tools
                                     </h3>
                                 </div>
-                                
+
                                 <p style={{ margin: '0 0 14px 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
-                                    Gunakan panel ini untuk mensimulasikan integrasi Midtrans Sandbox secara ril atau instan di lokal.
+                                    Gunakan panel ini untuk mensimulasikan notifikasi webhook Sandbox secara instan tanpa perlu menyelesaikan pembayaran.
                                 </p>
 
-                                {order.payment.payment_url.includes('payment/simulate') ? (
-                                    <div style={{
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                        borderRadius: 8,
-                                        padding: '8px 10px',
-                                        fontSize: 10,
-                                        color: '#fca5a5',
-                                        marginBottom: 14,
-                                        lineHeight: 1.4
-                                    }}>
-                                        <strong>⚠️ Peringatan Fallback:</strong> MIDTRANS_SERVER_KEY belum diatur di berkas .env Anda. Sistem menggunakan simulator tiruan lokal.
-                                    </div>
-                                ) : (
-                                    <div style={{
-                                        background: 'rgba(56, 189, 248, 0.1)',
-                                        border: '1px solid rgba(56, 189, 248, 0.2)',
-                                        borderRadius: 8,
-                                        padding: '8px 10px',
-                                        fontSize: 10,
-                                        color: '#7dd3fc',
-                                        marginBottom: 14,
-                                        lineHeight: 1.4
-                                    }}>
-                                        <strong>🔗 Midtrans Terhubung Ril:</strong> Pembayaran Anda menggunakan API Snap Sandbox asli. Klik <strong>Bayar Sekarang (Midtrans Ril)</strong> untuk melakukan pembayaran.
-                                    </div>
-                                )}
+                                <div style={{
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    fontSize: 10,
+                                    color: '#7dd3fc',
+                                    marginBottom: 14,
+                                    lineHeight: 1.4
+                                }}>
+                                    <strong>🔗 Sandbox Mode:</strong> Tombol di bawah akan menyimulasikan notifikasi webhook dari payment gateway ke server lokal Anda.
+                                </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {/* Link simulator Midtrans */}
@@ -444,7 +511,7 @@ export default function OrderStatus({ order }) {
                                             {isWebhookLoading ? '...' : '❌ Gagal (Expired)'}
                                         </button>
                                     </div>
-                                    
+
                                     {webhookMessage && (
                                         <div style={{
                                             marginTop: 6,
@@ -465,7 +532,7 @@ export default function OrderStatus({ order }) {
                         {/* Order Address & Shipment Info */}
                         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2' }}>
                             <h4 style={{ margin: '0 0 14px 0', fontWeight: 850, fontSize: 14, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Informasi Pengiriman</h4>
-                            
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div>
                                     <p style={{ margin: 0, fontSize: 11, color: '#888', fontWeight: 600 }}>KURIR PILIHAN</p>

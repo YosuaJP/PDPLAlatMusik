@@ -126,6 +126,10 @@ export default function ProductDetail({ product, related, reviews, avgRating }) 
         router.post(route('cart.add'), { product_id: product.product_id, quantity: 1 }, { preserveScroll: true });
     };
 
+    const buyNow = () => {
+        router.post(route('cart.add'), { product_id: product.product_id, quantity: 1, redirect_to_checkout: true });
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
             <Head title={`${product.name} — Melodi POS`} />
@@ -158,12 +162,20 @@ export default function ProductDetail({ product, related, reviews, avgRating }) 
                                     <span>•</span>
                                     <span>{reviews.length} ulasan</span>
                                 </div>
-                                <button
-                                    onClick={addToCart}
-                                    className="rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
-                                >
-                                    Tambahkan ke Keranjang
-                                </button>
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        onClick={addToCart}
+                                        className="rounded-full border-2 border-emerald-500 bg-white px-7 py-3 text-sm font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 transition-colors"
+                                    >
+                                        Tambahkan ke Keranjang
+                                    </button>
+                                    <button
+                                        onClick={buyNow}
+                                        className="rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                                    >
+                                        Beli Langsung
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

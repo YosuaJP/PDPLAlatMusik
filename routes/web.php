@@ -42,8 +42,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
 
+    Route::get('/payment/checkout/{external_id}', [PaymentController::class, 'checkoutPage'])->name('payment.checkout');
+
     Route::get('/payment/simulate/{external_id}', [PaymentController::class, 'simulate'])->name('payment.simulate');
     Route::post('/payment/simulate/{external_id}/process', [PaymentController::class, 'processSimulate'])->name('payment.process');
+
+    Route::post('/addresses', [\App\Http\Controllers\AddressController::class, 'store'])->name('addresses.store');
+    Route::put('/addresses/{id}', [\App\Http\Controllers\AddressController::class, 'update'])->name('addresses.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -51,5 +56,6 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::post('/payment/webhook/midtrans', [PaymentController::class, 'handleWebhook'])->name('payment.webhook.midtrans');
+Route::post('/payment/webhook/xendit', [PaymentController::class, 'handleXenditWebhook'])->name('payment.webhook.xendit');
 
 require __DIR__.'/auth.php';

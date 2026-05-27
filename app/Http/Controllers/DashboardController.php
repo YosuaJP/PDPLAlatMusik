@@ -101,12 +101,14 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($order) {
                 return [
-                    'order_id'       => $order->order_id,
-                    'created_at'     => $order->created_at->format('d M Y, H:i'),
-                    'final_amount'   => (float) $order->final_amount,
-                    'status'         => $order->status,
-                    'items_count'    => $order->items->sum('quantity'),
-                    'payment_status' => $order->payment->payment_status ?? 'pending',
+                    'order_id'            => $order->order_id,
+                    'created_at'          => $order->created_at->format('d M Y, H:i'),
+                    'created_at_raw'      => $order->created_at->toISOString(),
+                    'final_amount'        => (float) $order->final_amount,
+                    'status'              => $order->status,
+                    'items_count'         => $order->items->sum('quantity'),
+                    'payment_status'      => $order->payment->payment_status ?? 'pending',
+                    'payment_external_id' => $order->payment->external_id ?? null,
                 ];
             });
 

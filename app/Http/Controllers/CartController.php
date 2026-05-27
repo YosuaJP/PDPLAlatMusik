@@ -81,6 +81,10 @@ class CartController extends Controller
             ]);
         }
 
+        if ($request->redirect_to_checkout) {
+            return redirect()->route('checkout.index');
+        }
+
         return back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
     }
 
