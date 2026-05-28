@@ -37,24 +37,14 @@ class AdminRefundController extends Controller
         ]);
     }
 
-    public function process(Request $request, $id)
+    public function process(Request $request, $id, \App\Services\RefundService $refundService)
     {
-        $refund = Refund::findOrFail($id);
-
         $request->validate([
             'action' => 'required|in:approve,reject',
             'reason' => 'required_if:action,reject|nullable|string|max:255',
         ]);
 
-        if ($request->action === 'approve') {
-            $refund->update(['status' => 'approved']);
-            // Di sini Anda bisa menambahkan logika refund payment gateway atau mengembalikan stok
-        } else {
-            $refund->update([
-                'status' => 'rejected',
-                'rejection_reason' => $request->reason,
-            ]);
-        }
+        $refundService->processRefund($id, $request->action, $request->reason);
 
         return back()->with('success', 'Status refund berhasil diperbarui.');
     }

@@ -9,19 +9,21 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\StockMovement;
 use App\Services\PromoService;
+use App\Services\StockService;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
     protected PaymentGatewayInterface $paymentGateway;
     protected PromoService $promoService;
+    protected StockService $stockService;
 
-    public function __construct(PaymentGatewayInterface $paymentGateway, PromoService $promoService)
+    public function __construct(PaymentGatewayInterface $paymentGateway, PromoService $promoService, StockService $stockService)
     {
         $this->paymentGateway = $paymentGateway;
         $this->promoService = $promoService;
+        $this->stockService = $stockService;
     }
 
     /**
@@ -69,6 +71,9 @@ class OrderService
                     return $item->price_each * $item->quantity;
                 });
                 
+                // Validasi ulang promo di sisi backend untuk keamanan (expired, min purchase, dll)
+                $this->promoService->validatePromo($cart->promo->promo_code, (float)$subtotal);
+                
                 // Gunakan PromoService untuk menghitung diskon
                 $discountAmount = $this->promoService->applyDiscount($cart->promo, $subtotal);
                 
@@ -83,15 +88,14 @@ class OrderService
                 $product = Product::findOrFail($item->product_id);
                 $product->decrement('stock_qty', $item->quantity);
 
-                StockMovement::create([
-                    'product_id'    => $product->product_id,
-                    'created_by'    => $data['user_id'],
-                    'order_id'      => $order->order_id,
-                    'movement_type' => 'out',
-                    'quantity'      => $item->quantity,
-                    'notes'         => "Pengurangan stok otomatis untuk pesanan #{$order->order_id}",
-                    'created_at'    => now(),
-                ]);
+                $this->stockService->recordMovement(
+                    $product->product_id,
+                    $data['user_id'],
+                    $order->order_id,
+                    'out',
+                    $item->quantity,
+                    "Pengurangan stok otomatis untuk pesanan #{$order->order_id}"
+                );
             }
 
             // 5. Integrasikan dengan Payment Gateway via interface

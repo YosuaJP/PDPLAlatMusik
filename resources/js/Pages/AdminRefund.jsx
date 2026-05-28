@@ -109,10 +109,14 @@ export default function AdminRefund({ refunds, filters }) {
                                             <p className="text-[10px] text-gray-400 mt-0.5">{r.customer_email}</p>
                                         </td>
                                         <td className="px-5 py-4 text-center">
-                                            {r.evidence_urls ? (
-                                                <a href={r.evidence_urls} target="_blank" rel="noreferrer" className="inline-flex w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
-                                                    <img src={r.evidence_urls} alt="Bukti" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
-                                                </a>
+                                            {r.evidence_urls && r.evidence_urls.length > 0 ? (
+                                                <div className="flex gap-1 justify-center">
+                                                    {r.evidence_urls.map((url, i) => (
+                                                        <a key={i} href={url} target="_blank" rel="noreferrer" className="inline-flex w-8 h-8 rounded-lg overflow-hidden border border-gray-200">
+                                                            <img src={url} alt="Bukti" className="w-full h-full object-cover hover:opacity-80 transition-opacity" />
+                                                        </a>
+                                                    ))}
+                                                </div>
                                             ) : (
                                                 <span className="text-gray-300">—</span>
                                             )}

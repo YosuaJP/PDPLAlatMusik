@@ -19,6 +19,13 @@ class Refund extends Model
         'evidence_urls',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'evidence_urls' => 'array',
+        ];
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id', 'order_id');

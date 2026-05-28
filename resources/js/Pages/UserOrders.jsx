@@ -220,14 +220,23 @@ export default function UserOrders({ auth, orders }) {
                                                 <button onClick={() => handleReceive(ord.order_id)} className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors">
                                                     Diterima
                                                 </button>
-                                                <button onClick={() => openRefund(ord.order_id)} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
-                                                    Ajukan Refund
-                                                </button>
                                             </>
                                         ) : (
-                                            <Link href={route('orders.show', ord.order_id)} className="px-4 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold transition-colors">
-                                                Detail
-                                            </Link>
+                                            <>
+                                                <Link href={route('orders.show', ord.order_id)} className="px-4 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold transition-colors">
+                                                    Detail
+                                                </Link>
+                                                {(ord.status === 'delivered' || ord.status === 'completed') && !ord.has_refund && (
+                                                    <button onClick={() => openRefund(ord.order_id)} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
+                                                        Ajukan Refund
+                                                    </button>
+                                                )}
+                                                {ord.has_refund && (
+                                                    <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold capitalize">
+                                                        Refund {ord.refund_status}
+                                                    </span>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>
@@ -257,6 +266,14 @@ export default function UserOrders({ auth, orders }) {
                                     <span className="font-bold">Perhatian:</span> Pastikan Anda memiliki alasan yang valid untuk mengajukan refund. Admin akan meninjau permintaan Anda.
                                 </p>
                             </div>
+
+                            {errors.message && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
+                                    <p className="text-[11px] text-red-800 font-medium">
+                                        <span className="font-bold">Error:</span> {errors.message}
+                                    </p>
+                                </div>
+                            )}
 
                             <form onSubmit={submitRefund} className="space-y-4">
                                 <div>

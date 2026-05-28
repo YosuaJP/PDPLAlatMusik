@@ -18,7 +18,7 @@ class OrderController extends Controller
 
         $orders = Order::where('user_id', $userId)
             ->where('status', '!=', 'pending')
-            ->with(['items.product', 'payment'])
+            ->with(['items.product', 'payment', 'refunds'])
             ->orderByDesc('created_at')
             ->get()
             ->map(function ($order) {
@@ -29,6 +29,8 @@ class OrderController extends Controller
                     'final_amount'      => (float) $order->final_amount,
                     'status'            => $order->status,
                     'payment_external_id' => $order->payment->external_id ?? null,
+                    'has_refund'        => $order->refunds->count() > 0,
+                    'refund_status'     => $order->refunds->first()->status ?? null,
                     'items'             => $order->items->map(fn($item) => [
                         'product_name' => $item->product_name,
                         'quantity'     => $item->quantity,
@@ -67,12 +69,10 @@ class OrderController extends Controller
         return back()->with('success', 'Pesanan telah diterima.');
     }
 
-    public function submitRefund(Request $request, $id)
+    public function submitRefund(Request $request, $id, \App\Services\RefundService $refundService)
     {
         $user = auth()->user();
         $userId = $user->user_id ?? $user->id;
-
-        $order = Order::where('user_id', $userId)->findOrFail($id);
         
         $request->validate([
             'reason'   => 'required|string',
@@ -81,24 +81,17 @@ class OrderController extends Controller
             'video'    => 'mimes:mp4,mov,avi,wmv|max:10240', // max 10MB
         ]);
 
-        $evidenceUrls = [];
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $img) {
-                $path = $img->store('refunds', 'public');
-                $evidenceUrls[] = asset('storage/' . $path);
-            }
+        try {
+            $refundService->submitRefund(
+                $id,
+                $userId,
+                $request->reason,
+                $request->file('images') ?: [],
+                $request->file('video')
+            );
+        } catch (\Exception $e) {
+            return back()->withErrors(['message' => $e->getMessage()]);
         }
-        if ($request->hasFile('video')) {
-            $path = $request->file('video')->store('refunds', 'public');
-            $evidenceUrls[] = asset('storage/' . $path);
-        }
-
-        \App\Models\Refund::create([
-            'order_id'      => $order->order_id,
-            'reason'        => $request->reason,
-            'evidence_urls' => count($evidenceUrls) > 0 ? json_encode($evidenceUrls) : null,
-            'status'        => 'pending',
-        ]);
 
         return back()->with('success', 'Permintaan refund berhasil diajukan.');
     }
