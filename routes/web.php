@@ -64,6 +64,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::patch('/cart/update/{cartItemId}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{cartItemId}', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/cart/apply-promo', [CartController::class, 'applyPromo'])->name('cart.apply-promo');
+    Route::post('/cart/preview-promo', [CartController::class, 'previewPromo'])->name('cart.preview-promo');
+    Route::delete('/cart/remove-promo', [CartController::class, 'removePromo'])->name('cart.remove-promo');
 
     Route::get('/shop/products', [ShopController::class, 'catalog'])->name('product.catalog');
     Route::get('/shop/product/{id}', [ShopController::class, 'detail'])->name('product.detail');

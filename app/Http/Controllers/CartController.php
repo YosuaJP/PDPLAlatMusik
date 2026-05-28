@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Services\PromoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class CartController extends Controller
 {
+    protected PromoService $promoService;
+
+    public function __construct(PromoService $promoService)
+    {
+        $this->promoService = $promoService;
+    }
+
     protected function getCurrentUserId()
     {
         $user = auth()->user();
@@ -20,7 +28,7 @@ class CartController extends Controller
     {
         $userId = $this->getCurrentUserId();
 
-        $cart = Cart::with(['items.product.category'])
+        $cart = Cart::with(['items.product.category', 'promo'])
             ->where('user_id', $userId)
             ->where('status', 'active')
             ->first();
@@ -48,6 +56,10 @@ class CartController extends Controller
             'cartItems'   => $cartItems,
             'recommended' => Product::where('active', true)->inRandomOrder()->limit(4)->get(),
             'cartId'      => $cart?->cart_id,
+            'cart'        => $cart ? [
+                'promo_id' => $cart->promo_id,
+                'promo'    => $cart->promo,
+            ] : null,
         ]);
     }
 
@@ -120,5 +132,57 @@ class CartController extends Controller
         $cartItem->delete();
 
         return back()->with('success', 'Item keranjang berhasil dihapus.');
+    }
+
+    public function previewPromo(Request $request)
+    {
+        $request->validate([
+            'promo_code' => 'required|string',
+            'subtotal'   => 'required|numeric|min:0',
+        ]);
+
+        $result = $this->promoService->applyPromoPreview($request->promo_code, $request->subtotal);
+
+        return response()->json($result);
+    }
+
+    public function applyPromo(Request $request)
+    {
+        $request->validate([
+            'promo_code' => 'required|string',
+        ]);
+
+        $userId = $this->getCurrentUserId();
+        
+        $cart = Cart::with('items')->where('user_id', $userId)->where('status', 'active')->first();
+        if (!$cart) {
+            return back()->withErrors(['promo_error' => 'Keranjang kosong.']);
+        }
+
+        $subtotal = $cart->items->sum(function ($item) {
+            return $item->price_each * $item->quantity;
+        });
+
+        $result = $this->promoService->applyPromoPreview($request->promo_code, $subtotal);
+
+        if (!$result['success']) {
+            return back()->withErrors(['promo_error' => $result['message']]);
+        }
+
+        $cart->update(['promo_id' => $result['promo_id']]);
+
+        return back()->with('success', $result['message']);
+    }
+
+    public function removePromo()
+    {
+        $userId = $this->getCurrentUserId();
+        $cart = Cart::where('user_id', $userId)->where('status', 'active')->first();
+        
+        if ($cart) {
+            $cart->update(['promo_id' => null]);
+        }
+
+        return back()->with('success', 'Promo berhasil dihapus dari keranjang.');
     }
 }

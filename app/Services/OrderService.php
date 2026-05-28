@@ -10,15 +10,18 @@ use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\StockMovement;
+use App\Services\PromoService;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
     protected PaymentGatewayInterface $paymentGateway;
+    protected PromoService $promoService;
 
-    public function __construct(PaymentGatewayInterface $paymentGateway)
+    public function __construct(PaymentGatewayInterface $paymentGateway, PromoService $promoService)
     {
         $this->paymentGateway = $paymentGateway;
+        $this->promoService = $promoService;
     }
 
     /**
@@ -60,6 +63,19 @@ class OrderService
             }
 
             // 3. Buat pesanan & item pesanan menggunakan OrderFactory
+            // Hitung discount menggunakan PromoService jika ada promo di cart
+            if ($cart->promo) {
+                $subtotal = $cart->items->sum(function ($item) {
+                    return $item->price_each * $item->quantity;
+                });
+                
+                // Gunakan PromoService untuk menghitung diskon
+                $discountAmount = $this->promoService->applyDiscount($cart->promo, $subtotal);
+                
+                // Set data tambahan ke array data agar dibaca oleh OrderFactory
+                $data['calculated_discount_amount'] = $discountAmount;
+            }
+
             $order = OrderFactory::create($data, $cart);
 
             // 4. Potong stok produk & catat ke StockMovement
