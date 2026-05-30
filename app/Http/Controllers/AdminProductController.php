@@ -40,9 +40,21 @@ class AdminProductController extends Controller
             'price'       => 'required|numeric|min:0',
             'stock_qty'   => 'required|integer|min:0',
             'sku'         => 'nullable|string|max:100',
-            'image_url'   => 'nullable|url',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
             'active'      => 'boolean',
         ]);
+
+        $imageUrl = null;
+        if ($request->hasFile('image')) {
+            $dir = public_path('images/products');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0777, true);
+            }
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move($dir, $filename);
+            $imageUrl = '/images/products/' . $filename;
+        }
 
         Product::create([
             'category_id' => $request->category_id,
@@ -51,7 +63,7 @@ class AdminProductController extends Controller
             'price'       => $request->price,
             'stock_qty'   => $request->stock_qty,
             'sku'         => $request->sku,
-            'image_url'   => $request->image_url,
+            'image_url'   => $imageUrl,
             'active'      => $request->boolean('active'),
             'updated_at'  => now(),
         ]);
@@ -70,9 +82,29 @@ class AdminProductController extends Controller
             'price'       => 'required|numeric|min:0',
             'stock_qty'   => 'required|integer|min:0',
             'sku'         => 'nullable|string|max:100',
-            'image_url'   => 'nullable|url',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
             'active'      => 'boolean',
         ]);
+
+        $imageUrl = $product->image_url;
+        if ($request->hasFile('image')) {
+            // Delete old image if it exists and is local
+            if ($imageUrl && str_starts_with($imageUrl, '/images/products/')) {
+                $oldPath = public_path(substr($imageUrl, 1));
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
+            $dir = public_path('images/products');
+            if (!file_exists($dir)) {
+                mkdir($dir, 0777, true);
+            }
+            $file = $request->file('image');
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            $file->move($dir, $filename);
+            $imageUrl = '/images/products/' . $filename;
+        }
 
         $product->update([
             'category_id' => $request->category_id,
@@ -81,7 +113,7 @@ class AdminProductController extends Controller
             'price'       => $request->price,
             'stock_qty'   => $request->stock_qty,
             'sku'         => $request->sku,
-            'image_url'   => $request->image_url,
+            'image_url'   => $imageUrl,
             'active'      => $request->boolean('active'),
             'updated_at'  => now(),
         ]);

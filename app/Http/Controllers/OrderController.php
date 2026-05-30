@@ -32,10 +32,13 @@ class OrderController extends Controller
                     'has_refund'        => $order->refunds->count() > 0,
                     'refund_status'     => $order->refunds->first()->status ?? null,
                     'items'             => $order->items->map(fn($item) => [
+                        'order_item_id' => $item->order_item_id,
+                        'product_id'   => $item->product_id,
                         'product_name' => $item->product_name,
                         'quantity'     => $item->quantity,
                         'price_each'   => (float) $item->price_each,
                         'image_url'    => $item->product->image_url ?? null,
+                        'is_reviewed'  => \App\Models\Review::where('order_item_id', $item->order_item_id)->exists(),
                     ]),
                 ];
             });
@@ -141,6 +144,7 @@ class OrderController extends Controller
                     'quantity'     => $item->quantity,
                     'price_each'   => (float) $item->price_each,
                     'image_url'    => $item->product->image_url ?? null,
+                    'is_reviewed'  => \App\Models\Review::where('order_item_id', $item->order_item_id)->exists(),
                 ];
             }),
             'payment'          => $order->payment ? [

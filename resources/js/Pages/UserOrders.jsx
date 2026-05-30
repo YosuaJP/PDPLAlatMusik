@@ -125,6 +125,44 @@ export default function UserOrders({ auth, orders }) {
     const [refundModal, setRefundModal] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
 
+    // States untuk menulis ulasan
+    const [reviewModal, setReviewModal] = useState(false);
+    const [reviewTarget, setReviewTarget] = useState({ orderItemId: null, productName: '' });
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewProcessing, setReviewProcessing] = useState(false);
+    const [reviewError, setReviewError] = useState(null);
+
+    const openReviewModal = (orderItemId, productName) => {
+        setReviewTarget({ orderItemId, productName });
+        setReviewRating(5);
+        setReviewComment('');
+        setReviewError(null);
+        setReviewModal(true);
+    };
+
+    const submitReview = (e) => {
+        e.preventDefault();
+        setReviewProcessing(true);
+        setReviewError(null);
+        
+        router.post(route('reviews.store'), {
+            order_item_id: reviewTarget.orderItemId,
+            rating: reviewRating,
+            comment: reviewComment
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setReviewModal(false);
+                setReviewProcessing(false);
+            },
+            onError: (err) => {
+                setReviewError(err.message || 'Gagal menyimpan ulasan. Coba lagi.');
+                setReviewProcessing(false);
+            }
+        });
+    };
+
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         reason: '',
         images: null,
@@ -178,18 +216,39 @@ export default function UserOrders({ auth, orders }) {
                                 {/* Items Summary */}
                                 <div className="space-y-3 mb-5">
                                     {ord.items.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-                                                {item.image_url ? (
-                                                    <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <MusicIcon color="#d1d5db" />
-                                                )}
+                                        <div key={idx} className="flex items-center justify-between gap-4 py-2 border-b border-gray-50/50 last:border-0">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                                    {item.image_url ? (
+                                                        <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <MusicIcon color="#d1d5db" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-bold text-gray-800 leading-tight">{item.product_name}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">{item.quantity} x {fmt(item.price_each)}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm font-bold text-gray-800 leading-tight">{item.product_name}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{item.quantity} x {fmt(item.price_each)}</p>
-                                            </div>
+                                            
+                                            {/* Tombol Ulasan per Item jika status Delivered / Completed */}
+                                            {(ord.status === 'delivered' || ord.status === 'completed') && (
+                                                <div className="flex-shrink-0">
+                                                    {item.is_reviewed ? (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                                            Diulas
+                                                        </span>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => openReviewModal(item.order_item_id, item.product_name)}
+                                                            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[10px] font-bold transition-colors shadow-sm focus:outline-none"
+                                                        >
+                                                            Tulis Ulasan
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -330,6 +389,76 @@ export default function UserOrders({ auth, orders }) {
                                     </button>
                                     <button type="submit" disabled={processing} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50">
                                         {processing ? 'Loading...' : 'Ajukan Refund'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Review Modal */}
+            {reviewModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl my-8 overflow-hidden relative animate-in fade-in zoom-in-95 duration-150">
+                        <button onClick={() => setReviewModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        
+                        <div className="p-6">
+                            <h3 className="text-lg font-bold text-gray-800 mb-1">Berikan Ulasan</h3>
+                            <p className="text-xs text-gray-500 font-medium mb-5 truncate pb-2 border-b border-gray-100">{reviewTarget.productName}</p>
+
+                            {reviewError && (
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
+                                    <p className="text-[11px] text-red-800 font-medium">
+                                        <span className="font-bold">Error:</span> {reviewError}
+                                    </p>
+                                </div>
+                            )}
+
+                            <form onSubmit={submitReview} className="space-y-5">
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wider">Rating Produk</label>
+                                    <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                type="button"
+                                                key={star}
+                                                onClick={() => setReviewRating(star)}
+                                                className="text-2xl focus:outline-none transition-transform active:scale-90 hover:scale-110"
+                                            >
+                                                <svg
+                                                    className={`w-8 h-8 ${star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                >
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            </button>
+                                        ))}
+                                        <span className="text-sm font-bold text-gray-700 ml-2">{reviewRating} dari 5</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wider">Komentar / Ulasan</label>
+                                    <textarea
+                                        value={reviewComment}
+                                        onChange={e => setReviewComment(e.target.value)}
+                                        rows="4"
+                                        placeholder="Tuliskan pengalaman Anda menggunakan produk ini. Ulasan Anda sangat berharga bagi kami dan pembeli lainnya..."
+                                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-4 focus:ring-amber-100 focus:outline-none resize-none transition-all"
+                                        maxLength="1000"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button type="button" onClick={() => setReviewModal(false)} className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors">
+                                        Batal
+                                    </button>
+                                    <button type="submit" disabled={reviewProcessing} className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5">
+                                        {reviewProcessing ? 'Mengirim...' : 'Kirim Ulasan'}
                                     </button>
                                 </div>
                             </form>

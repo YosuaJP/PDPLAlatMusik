@@ -18,7 +18,9 @@ export default function AdminProducts({ products, categories, filters }) {
         stock_qty: '',
         sku: '',
         image_url: '',
+        image: null,
         active: true,
+        _method: 'POST',
     });
 
     // Handle search input changes with debounce or search trigger
@@ -40,7 +42,20 @@ export default function AdminProducts({ products, categories, filters }) {
         reset();
         clearErrors();
         if (categories && categories.length > 0) {
-            setData(prev => ({ ...prev, category_id: categories[0].category_id }));
+            setData(prev => ({
+                ...prev,
+                category_id: categories[0].category_id,
+                image: null,
+                image_url: '',
+                _method: 'POST'
+            }));
+        } else {
+            setData(prev => ({
+                ...prev,
+                image: null,
+                image_url: '',
+                _method: 'POST'
+            }));
         }
         setEditMode(false);
         setIsModalOpen(true);
@@ -56,7 +71,9 @@ export default function AdminProducts({ products, categories, filters }) {
             stock_qty: String(product.stock_qty || ''),
             sku: product.sku || '',
             image_url: product.image_url || '',
+            image: null,
             active: product.active ?? true,
+            _method: 'PUT',
         });
         setCurrentProductId(product.product_id);
         setEditMode(true);
@@ -71,7 +88,7 @@ export default function AdminProducts({ products, categories, filters }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (editMode) {
-            put(route('products.update', currentProductId), {
+            post(route('products.update', currentProductId), {
                 onSuccess: () => closeModal(),
             });
         } else {
@@ -355,17 +372,94 @@ export default function AdminProducts({ products, categories, filters }) {
                                     </select>
                                 </div>
 
-                                {/* Image URL Input */}
-                                <div>
-                                    <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">URL Gambar Produk</label>
-                                    <input
-                                        type="text"
-                                        value={data.image_url}
-                                        onChange={e => setData('image_url', e.target.value)}
-                                        placeholder="cth: https://images.unsplash.com/..."
-                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none transition-all text-sm"
-                                    />
-                                    {errors.image_url && <span className="text-red-500 text-xs mt-1 block">{errors.image_url}</span>}
+                                {/* Image Upload Input */}
+                                <div className="md:col-span-2">
+                                    <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Gambar Produk</label>
+                                    
+                                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-2xl hover:border-emerald-500 hover:bg-emerald-50/10 transition-all cursor-pointer relative group">
+                                        <input
+                                            type="file"
+                                            id="product-image-upload"
+                                            accept="image/*"
+                                            onChange={e => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    setData('image', file);
+                                                }
+                                            }}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        />
+                                        
+                                        <div className="space-y-1 text-center">
+                                            {/* Icon */}
+                                            {!data.image && !data.image_url ? (
+                                                <svg className="mx-auto h-12 w-12 text-gray-400 group-hover:text-emerald-500 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            ) : null}
+
+                                            <div className="flex flex-col items-center text-sm text-gray-600">
+                                                {data.image ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="relative w-32 h-32 mb-3 rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
+                                                            <img
+                                                                src={URL.createObjectURL(data.image)}
+                                                                alt="Selected preview"
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        </div>
+                                                        <p className="text-xs font-bold text-gray-800">{data.image.name}</p>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">{(data.image.size / 1024 / 1024).toFixed(2)} MB — Klik atau seret untuk mengganti</p>
+                                                    </div>
+                                                ) : data.image_url ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="relative w-32 h-32 mb-3 rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
+                                                            <img
+                                                                src={data.image_url}
+                                                                alt="Current product"
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <span className="text-[10px] text-white font-bold uppercase tracking-wider">Ganti Gambar</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-xs font-bold text-gray-500">Gambar saat ini</p>
+                                                        <p className="text-[10px] text-gray-400 mt-0.5">Klik atau seret untuk mengunggah gambar baru dari perangkat Anda</p>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span className="font-bold text-emerald-600 group-hover:text-emerald-700 transition-colors">Unggah gambar produk</span>
+                                                        <p className="pl-1 text-gray-400 text-xs mt-1">atau seret file gambar ke area ini</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                            
+                                            {!data.image && !data.image_url ? (
+                                                <p className="text-[10px] text-gray-400 mt-1">PNG, JPG, JPEG, WebP hingga 4MB</p>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Action button to reset the selected file if one is uploaded */}
+                                    {data.image && (
+                                        <div className="flex justify-end mt-2">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setData('image', null);
+                                                }}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-500 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Batalkan Pilihan
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {errors.image && <span className="text-red-500 text-xs mt-1 block">{errors.image}</span>}
                                 </div>
 
                                 {/* Description Input */}
@@ -379,24 +473,6 @@ export default function AdminProducts({ products, categories, filters }) {
                                         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none transition-all text-sm resize-none"
                                     ></textarea>
                                 </div>
-
-                                {/* Mini Preview if URL entered */}
-                                {data.image_url && (
-                                    <div className="md:col-span-2 p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center gap-4">
-                                        <img
-                                            src={data.image_url}
-                                            alt="Preview"
-                                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 bg-white"
-                                            onError={(e) => {
-                                                e.target.src = 'https://placehold.co/100?text=Invalid+URL';
-                                            }}
-                                        />
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-800">Preview Gambar</p>
-                                            <p className="text-[10px] text-gray-400 mt-0.5">Pastikan tautan gambar dapat diakses secara publik.</p>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Modal Footer */}

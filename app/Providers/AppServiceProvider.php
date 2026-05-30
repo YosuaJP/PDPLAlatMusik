@@ -34,5 +34,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // Mendaftarkan OrderObserver untuk model Order
+        \App\Models\Order::observe(\App\Observers\OrderObserver::class);
     }
 }
