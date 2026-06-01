@@ -78,6 +78,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/refund', [OrderController::class, 'submitRefund'])->name('orders.refund');
     Route::post('/orders/{id}/receive', [OrderController::class, 'markAsReceived'])->name('orders.receive');
+    Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
 
     Route::get('/payment/checkout/{external_id}', [PaymentController::class, 'checkoutPage'])->name('payment.checkout');
 
@@ -91,6 +92,8 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+Route::get('/admin/reviews', [\App\Http\Controllers\AdminReviewController::class, 'index'])->name('admin.reviews.index')->middleware(['auth']);
 
 Route::post('/payment/webhook/midtrans', [PaymentController::class, 'handleWebhook'])->name('payment.webhook.midtrans');
 Route::post('/payment/webhook/xendit', [PaymentController::class, 'handleXenditWebhook'])->name('payment.webhook.xendit');
