@@ -2,11 +2,17 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-const typeLabel = { in: 'Masuk (In)', out: 'Keluar (Out)' };
-const typeBadge = {
-    in:  'bg-emerald-100 text-emerald-700',
-    out: 'bg-red-100 text-red-600',
+const typeLabel = { 
+    in: 'Masuk (In)', 
+    out: 'Keluar (Out)',
+    refund_return: 'Retur Refund',
 };
+const typeBadge = {
+    in:            'bg-emerald-100 text-emerald-700',
+    out:           'bg-red-100 text-red-600',
+    refund_return: 'bg-blue-100 text-blue-700',
+};
+const isIncoming = (type) => type === 'in' || type === 'refund_return';
 
 export default function AdminStock({ movements, products, filters }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,7 +44,7 @@ export default function AdminStock({ movements, products, filters }) {
 
     return (
         <AdminLayout pageTitle="Riwayat Stok">
-            <Head title="Pencatatan Stok — Admin" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {/* Header */}
@@ -111,12 +117,12 @@ export default function AdminStock({ movements, products, filters }) {
                                     </td>
                                     <td className="px-5 py-3.5">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold ${typeBadge[m.movement_type] ?? 'bg-gray-100 text-gray-600'}`}>
-                                            {m.movement_type === 'in' ? 'Masuk (In)' : 'Keluar (Out)'}
+                                            {typeLabel[m.movement_type] ?? m.movement_type}
                                         </span>
                                     </td>
-                                    <td className="px-5 py-3.5">
-                                        <span className={`font-bold text-sm ${m.quantity >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                            {m.quantity >= 0 ? '+' : ''}{m.quantity}
+                                    <td className="py-4 px-4">
+                                        <span className={`font-bold text-sm ${isIncoming(m.movement_type) ? 'text-emerald-600' : 'text-red-500'}`}>
+                                            {isIncoming(m.movement_type) ? '+' : '-'}{Math.abs(m.quantity)}
                                         </span>
                                     </td>
                                     <td className="px-5 py-3.5 text-xs text-gray-500">

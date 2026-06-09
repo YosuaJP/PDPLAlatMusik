@@ -19,11 +19,11 @@ export default function Register() {
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans py-12">
-            <Head title="Daftar — Melodi POS" />
+            <Head title="" />
 
             <div className="w-full max-w-[440px]">
                 <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-sm border border-gray-100 relative">
-                    
+
                     {/* Top Icon */}
                     <div className="flex justify-center mb-6">
                         <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -35,11 +35,11 @@ export default function Register() {
 
                     <div className="text-center mb-8">
                         <h1 className="text-2xl font-extrabold text-gray-900">Daftar Akun Baru</h1>
-                        <p className="text-sm text-gray-500 mt-1">Gabung Melodi POS untuk mulai belanja.</p>
+                        <p className="text-sm text-gray-500 mt-1">Gabung NadaKito untuk mulai belanja.</p>
                     </div>
 
                     <form onSubmit={submit} className="space-y-4">
-                        
+
                         {/* Name Field */}
                         <div>
                             <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-1.5">Nama Lengkap</label>
@@ -49,8 +49,16 @@ export default function Register() {
                                 name="name"
                                 value={data.name}
                                 className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
-                                placeholder="Contoh: Valentino Hose"
+                                placeholder="Contoh: Budi Santoso"
                                 onChange={(e) => setData('name', e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (data.name.trim().length > 0) {
+                                            e.preventDefault();
+                                            document.getElementById('phone_number').focus();
+                                        }
+                                    }
+                                }}
                                 autoFocus
                             />
                             <InputError message={errors.name} className="mt-1" />
@@ -67,6 +75,14 @@ export default function Register() {
                                 className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
                                 placeholder="08xxxxxxxxxx"
                                 onChange={(e) => setData('phone_number', e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (data.phone_number.trim().length > 0) {
+                                            e.preventDefault();
+                                            document.getElementById('email').focus();
+                                        }
+                                    }
+                                }}
                             />
                             <InputError message={errors.phone_number} className="mt-1" />
                         </div>
@@ -82,6 +98,15 @@ export default function Register() {
                                 className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
                                 placeholder="nama@email.com"
                                 onChange={(e) => setData('email', e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        if (emailRegex.test(data.email)) {
+                                            e.preventDefault();
+                                            document.getElementById('password').focus();
+                                        }
+                                    }
+                                }}
                             />
                             <InputError message={errors.email} className="mt-1" />
                         </div>
@@ -97,6 +122,14 @@ export default function Register() {
                                 className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
                                 placeholder="Minimal 8 karakter"
                                 onChange={(e) => setData('password', e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        if (data.password.length > 0) {
+                                            e.preventDefault();
+                                            document.getElementById('password_confirmation').focus();
+                                        }
+                                    }
+                                }}
                             />
                             <InputError message={errors.password} className="mt-1" />
                         </div>

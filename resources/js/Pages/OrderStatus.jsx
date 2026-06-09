@@ -1,34 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import Navbar from '@/Components/Navbar';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-function Navbar({ auth, cartCount }) {
-    return (
-        <nav style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 20, height: 64 }}>
-                <Link href={route('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-                    <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: 17, color: '#1a1a1a' }}>NadaKito</span>
-                </Link>
-                <div style={{ flex: 1 }} />
-                <Link href={route('dashboard')} style={{ fontSize: 14, fontWeight: 500, color: '#555', textDecoration: 'none' }}>Beranda</Link>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#555' }}>Produk</span>
-                <Link href={route('cart.index')} style={{ position: 'relative', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    {cartCount > 0 && (
-                        <span style={{ position: 'absolute', top: -6, right: -6, background: '#3a7d44', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount > 9 ? '9+' : cartCount}</span>
-                    )}
-                </Link>
-                {auth?.user && (
-                    <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {auth.user.name?.charAt(0).toUpperCase()}
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
-}
 
 export default function OrderStatus({ order }) {
     const [isWebhookLoading, setIsWebhookLoading] = useState(false);
@@ -116,14 +89,33 @@ export default function OrderStatus({ order }) {
                 return { bg: '#f3e8ff', color: '#7c3aed', label: 'Dikirim' };
             case 'delivered':
                 return { bg: '#d1fae5', color: '#059669', label: 'Diterima' };
+            case 'completed':
+                return { bg: '#d1fae5', color: '#059669', label: 'Selesai' };
             case 'cancelled':
                 return { bg: '#fee2e2', color: '#dc2626', label: 'Dibatalkan' };
+            case 'refund_requested':
+                return { bg: '#fff7ed', color: '#c2410c', label: 'Refund Diajukan' };
+            case 'refund_approved':
+                return { bg: '#dcfce7', color: '#16a34a', label: 'Refund Disetujui' };
+            case 'refund_rejected':
+                return { bg: '#fee2e2', color: '#dc2626', label: 'Refund Ditolak' };
             default:
                 return { bg: '#f3f4f6', color: '#4b5563', label: status };
         }
     };
 
-    const orderStatus = getStatusStyles(order.status);
+    // Gunakan status refund untuk badge jika refund sudah selesai
+    const refundStatus = order.refund?.status;
+    const refundApproved = refundStatus === 'approved';
+    const refundRejected = refundStatus === 'rejected';
+
+    const displayStatus = refundApproved
+        ? 'refund_approved'
+        : refundRejected
+        ? 'refund_rejected'
+        : order.status;
+
+    const orderStatus = getStatusStyles(displayStatus);
     const paymentStatus = order.payment?.payment_status === 'paid'
         ? { bg: '#e6f4ea', color: '#137333', label: 'Lunas' }
         : order.payment?.payment_status === 'failed'
@@ -141,8 +133,16 @@ export default function OrderStatus({ order }) {
                 return { char: '🚚', bg: '#f3e8ff', border: '#8b5cf6' };
             case 'delivered':
                 return { char: '✅', bg: '#d1fae5', border: '#10b981' };
+            case 'completed':
+                return { char: '🏁', bg: '#d1fae5', border: '#10b981' };
             case 'cancelled':
                 return { char: '❌', bg: '#fee2e2', border: '#ef4444' };
+            case 'refund_requested':
+                return { char: '🔄', bg: '#fff7ed', border: '#f97316' };
+            case 'refund_approved':
+                return { char: '💚', bg: '#dcfce7', border: '#16a34a' };
+            case 'refund_rejected':
+                return { char: '🚫', bg: '#fee2e2', border: '#dc2626' };
             default:
                 return { char: '📌', bg: '#f3f4f6', border: '#9ca3af' };
         }
@@ -150,7 +150,7 @@ export default function OrderStatus({ order }) {
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Inter','Segoe UI',sans-serif", paddingBottom: 60 }}>
-            <Head title={`Pesanan #${order.order_id} — NadaKito`} />
+            <Head title="" />
             <Navbar auth={null} cartCount={0} />
 
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px', position: 'relative' }}>
@@ -298,25 +298,19 @@ export default function OrderStatus({ order }) {
                                     const bullet = getTimelineBullet(hist.new_status);
                                     return (
                                         <div key={hist.id || idx} style={{ position: 'relative' }}>
-                                            {/* Bullet icon */}
+                                            {/* Elegant Dot */}
                                             <div style={{
                                                 position: 'absolute',
-                                                left: -30,
-                                                top: 0,
-                                                width: 30,
-                                                height: 30,
+                                                left: -22,
+                                                top: 6,
+                                                width: 14,
+                                                height: 14,
                                                 borderRadius: '50%',
-                                                background: bullet.bg,
-                                                border: `2px solid ${bullet.border}`,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: 14,
+                                                background: bullet.border,
+                                                border: '2px solid #fff',
                                                 zIndex: 2,
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-                                            }}>
-                                                {bullet.char}
-                                            </div>
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                            }} />
 
                                             {/* Content box */}
                                             <div style={{
@@ -339,7 +333,7 @@ export default function OrderStatus({ order }) {
                                                 </div>
                                                 <p style={{ margin: 0, fontSize: 13, color: '#555', lineHeight: 1.4 }}>{hist.note}</p>
                                                 <div style={{ marginTop: 6, fontSize: 11, color: '#888', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    👤 Diperbarui oleh: <strong>{hist.changed_by}</strong>
+                                                    Diperbarui oleh: <strong>{hist.changed_by}</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -374,6 +368,49 @@ export default function OrderStatus({ order }) {
 
                     {/* RIGHT COLUMN: Summary & Payment Actions */}
                     <div style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                        {/* Aksi Pesanan (Diterima / Refund) */}
+                        {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !refundApproved && (
+                            <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2' }}>
+                                <h3 style={{ margin: '0 0 14px 0', fontSize: 14, fontWeight: 800, color: '#1a1a1a' }}>Aksi Pesanan</h3>
+                                
+                                {order.status === 'shipped' && !order.has_refund && (
+                                    <button
+                                        onClick={() => router.post(route('orders.receive', order.order_id), {}, { preserveScroll: true })}
+                                        style={{ width: '100%', padding: '12px 0', background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}
+                                    >
+                                        Pesanan Diterima
+                                    </button>
+                                )}
+
+                                {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !order.has_refund && (
+                                    <Link
+                                        href={route('orders.index')}
+                                        style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px 0', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                                    >
+                                        Ajukan Refund di Dashboard
+                                    </Link>
+                                )}
+
+                                {order.has_refund && !refundApproved && (
+                                    <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#c2410c', textAlign: 'center' }}>
+                                        Refund sedang diproses oleh admin
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {refundApproved && (
+                            <div style={{ background: '#f0fdf4', borderRadius: 16, padding: 20, border: '1.5px solid #86efac' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <svg width="22" height="22" fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <div>
+                                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#15803d' }}>Refund Berhasil Disetujui</p>
+                                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#4ade80', fontWeight: 500 }}>Stok produk telah dikembalikan ke toko</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Action Bayar (hanya tampil jika PENDING) */}
                         {order.status === 'pending' && order.payment && (

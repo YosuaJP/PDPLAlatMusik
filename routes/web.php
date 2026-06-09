@@ -68,9 +68,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cart/preview-promo', [CartController::class, 'previewPromo'])->name('cart.preview-promo');
     Route::delete('/cart/remove-promo', [CartController::class, 'removePromo'])->name('cart.remove-promo');
 
-    Route::get('/shop/products', [ShopController::class, 'catalog'])->name('product.catalog');
-    Route::get('/shop/product/{id}', [ShopController::class, 'detail'])->name('product.detail');
-
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
@@ -97,5 +94,8 @@ Route::get('/admin/reviews', [\App\Http\Controllers\AdminReviewController::class
 
 Route::post('/payment/webhook/midtrans', [PaymentController::class, 'handleWebhook'])->name('payment.webhook.midtrans');
 Route::post('/payment/webhook/xendit', [PaymentController::class, 'handleXenditWebhook'])->name('payment.webhook.xendit');
+
+Route::get('/shop/products', [ShopController::class, 'catalog'])->name('product.catalog');
+Route::get('/shop/product/{id}', [ShopController::class, 'detail'])->name('product.detail');
 
 require __DIR__.'/auth.php';

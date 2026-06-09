@@ -52,7 +52,7 @@ export default function AdminRefund({ refunds, filters }) {
 
     return (
         <AdminLayout pageTitle="Admin Panel">
-            <Head title="Manajemen Refund — Admin" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {/* Header */}

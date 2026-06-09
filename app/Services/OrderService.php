@@ -83,20 +83,8 @@ class OrderService
 
             $order = OrderFactory::create($data, $cart);
 
-            // 4. Potong stok produk & catat ke StockMovement
-            foreach ($cart->items as $item) {
-                $product = Product::findOrFail($item->product_id);
-                $product->decrement('stock_qty', $item->quantity);
-
-                $this->stockService->recordMovement(
-                    $product->product_id,
-                    $data['user_id'],
-                    $order->order_id,
-                    'out',
-                    $item->quantity,
-                    "Pengurangan stok otomatis untuk pesanan #{$order->order_id}"
-                );
-            }
+            // 4. Potong stok produk dilakukan SETELAH pembayaran dikonfirmasi (bukan di sini)
+            //    Di sini hanya validasi stok sudah dilakukan di atas (step 2)
 
             // 5. Integrasikan dengan Payment Gateway via interface
             $paymentData = $this->paymentGateway->createPayment($order);

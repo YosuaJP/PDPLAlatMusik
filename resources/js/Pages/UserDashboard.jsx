@@ -26,7 +26,7 @@ function Navbar({ auth, cartCount, searchQuery, onSearch }) {
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                             <MusicIcon color="#fff" />
                         </div>
-                        <span className="font-bold text-xl text-gray-800 tracking-tight">Melodi POS</span>
+                        <span className="font-bold text-xl text-gray-800 tracking-tight">NadaKito</span>
                     </Link>
 
                     {/* Search */}
@@ -239,17 +239,25 @@ function PendingOrderCountdown({ createdAtRaw, externalId, orderId, amount }) {
 function ProductCard({ product, onAdd, justAdded }) {
     const rating = (4.0 + (product.product_id % 9) * 0.1).toFixed(1);
     const sold   = product.product_id * 12 + 14;
+    const isSoldOut = product.stock_qty <= 0;
+    
     return (
-        <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-200 transition-all group flex flex-col relative">
+        <div className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 flex flex-col relative ${isSoldOut ? 'opacity-70 pointer-events-none grayscale-[0.8]' : 'hover:shadow-lg hover:border-emerald-200 transition-all group'}`}>
+            {isSoldOut && (
+                <div className="absolute top-4 right-4 z-30 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                    Habis
+                </div>
+            )}
+            
             {/* Link overlay covering the entire card */}
-            <Link href={route('product.detail', product.product_id)} className="absolute inset-0 z-10" />
+            <Link href={isSoldOut ? '#' : route('product.detail', product.product_id)} className="absolute inset-0 z-10" />
 
             <div className="aspect-square bg-gray-50 overflow-hidden relative">
                 {product.image_url
-                    ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ? <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover ${!isSoldOut && 'group-hover:scale-105 transition-transform duration-300'}`} />
                     : <div className="w-full h-full flex items-center justify-center"><MusicIcon color="#d1d5db" /></div>
                 }
-                {justAdded && (
+                {justAdded && !isSoldOut && (
                     <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center z-20">
                         <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">✓ Ditambahkan!</span>
                     </div>
@@ -269,8 +277,8 @@ function ProductCard({ product, onAdd, justAdded }) {
                         <span>{sold} Terjual</span>
                     </div>
                     <button onClick={(e) => { e.preventDefault(); onAdd(product.product_id); }}
-                        className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors shadow-sm relative z-20"
-                        title="Tambah ke keranjang">
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm relative z-20 ${isSoldOut ? 'bg-gray-100 text-gray-400' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white'}`}
+                        title={isSoldOut ? 'Stok Habis' : 'Tambah ke keranjang'}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                         </svg>
@@ -319,7 +327,7 @@ export default function UserDashboard({ auth, products, categories }) {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-            <Head title="Beranda — Melodi POS" />
+            <Head title="" />
             <Navbar auth={sharedAuth} cartCount={cartCount} searchQuery={searchQuery} onSearch={setSearchQuery} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -425,26 +433,32 @@ export default function UserDashboard({ auth, products, categories }) {
                                     }`}>
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-gray-800 text-sm">Pesanan #{ord.order_id}</span>
+                                            <span className="font-bold text-gray-800 text-sm truncate max-w-[180px]" title={ord.first_item_name}>
+                                                {ord.first_item_name}{ord.items_count > 1 ? ` +${ord.items_count - 1} lainnya` : ''}
+                                            </span>
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                ord.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                                                ord.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                                                ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
-                                                ord.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                                                ord.refund_status === 'approved' ? 'bg-teal-100 text-teal-700' :
+                                                ord.refund_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                ord.refund_status === 'pending'  ? 'bg-orange-100 text-orange-700' :
+                                                ord.status === 'processing'      ? 'bg-blue-100 text-blue-700' :
+                                                ord.status === 'shipped'         ? 'bg-purple-100 text-purple-700' :
+                                                ord.status === 'delivered' || ord.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                ord.status === 'cancelled'       ? 'bg-red-100 text-red-700' :
+                                                'bg-gray-100 text-gray-700'
                                             }`}>
-                                                {ord.status.toUpperCase()}
+                                                {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                 ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                 ord.refund_status === 'pending'  ? 'Refund Diproses' :
+                                                 ord.status === 'processing' ? 'Diproses' :
+                                                 ord.status === 'shipped'    ? 'Dikirim' :
+                                                 ord.status === 'delivered'  ? 'Diterima' :
+                                                 ord.status === 'completed'  ? 'Selesai' :
+                                                 ord.status === 'cancelled'  ? 'Dibatalkan' :
+                                                 ord.status}
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 m-0">{ord.created_at} • {ord.items_count} Barang</p>
-                                        {ord.status === 'processing' && (
-                                            <p className="text-xs text-blue-600 font-semibold mt-1 flex items-center gap-1 m-0">
-                                                <span className="relative flex h-1.5 w-1.5">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
-                                                </span>
-                                                Tinggal nanti dikirim oleh admin
-                                            </p>
-                                        )}
+
                                     </div>
                                     <div className="text-right">
                                         <p className="font-extrabold text-sm text-gray-900 mb-1">{fmt(ord.final_amount)}</p>

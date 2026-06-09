@@ -71,6 +71,16 @@ class CartController extends Controller
         ]);
 
         $product = Product::findOrFail($request->product_id);
+
+        // Stock guard — reject if out of stock or requested quantity exceeds stock
+        if ($product->stock_qty <= 0) {
+            return back()->withErrors(['stock' => 'Maaf, stok produk ini sudah habis.']);
+        }
+
+        if ($request->quantity > $product->stock_qty) {
+            return back()->withErrors(['stock' => "Maaf, stok tersedia hanya {$product->stock_qty} unit."]);
+        }
+
         $userId = $this->getCurrentUserId();
 
         $cart = Cart::firstOrCreate(
@@ -83,6 +93,10 @@ class CartController extends Controller
             ->first();
 
         if ($cartItem) {
+            $newQty = $cartItem->quantity + $request->quantity;
+            if ($newQty > $product->stock_qty) {
+                return back()->withErrors(['stock' => "Maaf, stok tersedia hanya {$product->stock_qty} unit (sudah ada {$cartItem->quantity} di keranjang)."]);
+            }
             $cartItem->increment('quantity', $request->quantity);
         } else {
             CartItem::create([

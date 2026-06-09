@@ -40,6 +40,9 @@ class OrderController extends Controller
                         'image_url'    => $item->product->image_url ?? null,
                         'is_reviewed'  => \App\Models\Review::where('order_item_id', $item->order_item_id)->exists(),
                     ]),
+                    'all_reviewed'      => $order->items->every(fn($item) =>
+                        \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
+                    ),
                 ];
             });
 
@@ -76,7 +79,16 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         $userId = $user->user_id ?? $user->id;
-        
+
+        // Block refund if all items have been reviewed
+        $order = Order::with('items')->findOrFail($id);
+        $allReviewed = $order->items->every(fn($item) =>
+            \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
+        );
+        if ($allReviewed) {
+            return back()->withErrors(['message' => 'Refund tidak dapat diajukan karena Anda sudah memberikan ulasan untuk semua barang.']);
+        }
+
         $request->validate([
             'reason'   => 'required|string',
             'images.*' => 'image|max:2048', // max 2MB
@@ -92,6 +104,16 @@ class OrderController extends Controller
                 $request->file('images') ?: [],
                 $request->file('video')
             );
+
+            // Log refund submission to order status history
+            \App\Models\OrderStatusHistory::create([
+                'order_id'   => $id,
+                'old_status' => $order->status,
+                'new_status' => 'refund_requested',
+                'changed_by' => $userId,
+                'changed_at' => now(),
+                'note'       => 'Pelanggan mengajukan permintaan refund.',
+            ]);
         } catch (\Exception $e) {
             return back()->withErrors(['message' => $e->getMessage()]);
         }
@@ -112,6 +134,7 @@ class OrderController extends Controller
             'items.product',
             'payment',
             'shipment',
+            'refunds',
             'statusHistories' => function($q) {
                 $q->orderBy('changed_at', 'asc');
             },
@@ -172,6 +195,17 @@ class OrderController extends Controller
                     'changed_by'  => $history->changedBy->name ?? 'Sistem',
                 ];
             }),
+            'refund'           => $order->refunds->first() ? [
+                'refund_id'        => $order->refunds->first()->refund_id,
+                'status'           => $order->refunds->first()->status,
+                'reason'           => $order->refunds->first()->reason,
+                'rejection_reason' => $order->refunds->first()->rejection_reason,
+                'created_at'       => $order->refunds->first()->created_at?->format('d M Y, H:i'),
+                'updated_at'       => $order->refunds->first()->updated_at?->format('d M Y, H:i'),
+            ] : null,
+            'all_reviewed'     => $order->items->every(fn($item) =>
+                \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
+            ),
         ];
 
         return Inertia::render('OrderStatus', [

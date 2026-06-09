@@ -1,34 +1,7 @@
+import Navbar from '@/Components/Navbar';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-function Navbar({ auth, cartCount }) {
-    return (
-        <nav style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 20, height: 64 }}>
-                <Link href={route('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-                    <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: 17, color: '#1a1a1a' }}>NadaKito</span>
-                </Link>
-                <div style={{ flex: 1 }} />
-                <Link href={route('dashboard')} style={{ fontSize: 14, fontWeight: 500, color: '#555', textDecoration: 'none' }}>Beranda</Link>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#555' }}>Produk</span>
-                <Link href={route('cart.index')} style={{ position: 'relative', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    {cartCount > 0 && (
-                        <span style={{ position: 'absolute', top: -6, right: -6, background: '#3a7d44', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount > 9 ? '9+' : cartCount}</span>
-                    )}
-                </Link>
-                {auth?.user && (
-                    <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {auth.user.name?.charAt(0).toUpperCase()}
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
-}
 
 export default function Checkout({ cartItems, cart, addresses, promos, couriers }) {
     const { props } = usePage();
@@ -147,7 +120,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Inter','Segoe UI',sans-serif", pb: 60 }}>
-            <Head title="Checkout — NadaKito" />
+            <Head title="" />
             <Navbar auth={auth} cartCount={cartCount} />
 
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px' }}>

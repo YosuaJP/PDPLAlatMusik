@@ -22,11 +22,11 @@ function Navbar({ auth, cartCount }) {
                 <div className="flex justify-between items-center h-16 gap-6">
 
                     {/* Logo */}
-                    <Link href={route('dashboard')} className="flex items-center gap-2 flex-shrink-0 no-underline">
+                    <Link href={route('welcome')} className="flex items-center gap-2 flex-shrink-0 no-underline">
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                             <MusicIcon color="#fff" />
                         </div>
-                        <span className="font-bold text-xl text-gray-800 tracking-tight">Melodi POS</span>
+                        <span className="font-bold text-xl text-gray-800 tracking-tight">NadaKito</span>
                     </Link>
 
                     {/* Search */}
@@ -48,7 +48,7 @@ function Navbar({ auth, cartCount }) {
                     {/* Right */}
                     <div className="flex items-center gap-5">
                         <div className="hidden sm:flex items-center gap-5 text-sm font-medium text-gray-600">
-                            <Link href={route('dashboard')} className="hover:text-emerald-600 transition-colors">Beranda</Link>
+                            <Link href={route('welcome')} className="hover:text-emerald-600 transition-colors">Beranda</Link>
                             <Link href={route('product.catalog')} className="hover:text-emerald-600 transition-colors">Produk</Link>
                         </div>
 
@@ -129,18 +129,31 @@ export default function ProductDetail({ product, related, reviews, avgRating }) 
     const { props } = usePage();
     const auth = props.auth;
     const cartCount = props.cartCount ?? 0;
-    
+    const [buyNowQty, setBuyNowQty] = useState(1);
+    const [showBuyNowModal, setShowBuyNowModal] = useState(false);
+    const [buyNowLoading, setBuyNowLoading] = useState(false);
+
     const addToCart = () => {
         router.post(route('cart.add'), { product_id: product.product_id, quantity: 1 }, { preserveScroll: true });
     };
 
-    const buyNow = () => {
-        router.post(route('cart.add'), { product_id: product.product_id, quantity: 1, redirect_to_checkout: true });
+    const openBuyNow = () => {
+        setBuyNowQty(1);
+        setShowBuyNowModal(true);
+    };
+
+    const confirmBuyNow = () => {
+        setBuyNowLoading(true);
+        router.post(
+            route('cart.add'),
+            { product_id: product.product_id, quantity: buyNowQty, redirect_to_checkout: true },
+            { onFinish: () => { setBuyNowLoading(false); setShowBuyNowModal(false); } }
+        );
     };
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-            <Head title={`${product.name} — Melodi POS`} />
+            <Head title="" />
             <Navbar auth={auth} cartCount={cartCount} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -170,19 +183,98 @@ export default function ProductDetail({ product, related, reviews, avgRating }) 
                                     <span>•</span>
                                     <span>{reviews.length} ulasan</span>
                                 </div>
-                                <div className="flex flex-wrap gap-3">
-                                    <button
-                                        onClick={addToCart}
-                                        className="rounded-full border-2 border-emerald-500 bg-white px-7 py-3 text-sm font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 transition-colors"
-                                    >
-                                        Tambahkan ke Keranjang
-                                    </button>
-                                    <button
-                                        onClick={buyNow}
-                                        className="rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
-                                    >
-                                        Beli Langsung
-                                    </button>
+                                <div className="flex flex-wrap gap-3 relative">
+                                    {product.stock_qty > 0 ? (
+                                        <>
+                                            <button
+                                                onClick={addToCart}
+                                                className="rounded-full border-2 border-emerald-500 bg-white px-7 py-3 text-sm font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 transition-colors"
+                                            >
+                                                Tambahkan ke Keranjang
+                                            </button>
+                                            <div className="relative">
+                                                <button
+                                                    onClick={openBuyNow}
+                                                    className="rounded-full bg-emerald-500 px-7 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-600 transition-colors"
+                                                >
+                                                    Beli Langsung
+                                                </button>
+
+                                                {/* Quantity Picker Dropdown */}
+                                                {showBuyNowModal && (
+                                                    <>
+                                                        {/* Backdrop */}
+                                                        <div
+                                                            className="fixed inset-0 z-40"
+                                                            onClick={() => setShowBuyNowModal(false)}
+                                                        />
+                                                        <div className="absolute left-0 top-full mt-3 z-50 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-5 animate-fadeIn">
+                                                            <p className="text-sm font-bold text-gray-800 mb-1">Jumlah Barang</p>
+                                                            <p className="text-xs text-gray-500 mb-4">Stok tersedia: {product.stock_qty}</p>
+
+                                                            {/* Quantity Control */}
+                                                            <div className="flex items-center gap-3 mb-4">
+                                                                <button
+                                                                    onClick={() => setBuyNowQty(q => Math.max(1, q - 1))}
+                                                                    className="w-9 h-9 rounded-full border-2 border-emerald-400 text-emerald-600 font-bold text-lg flex items-center justify-center hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                                    disabled={buyNowQty <= 1}
+                                                                >
+                                                                    −
+                                                                </button>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    max={product.stock_qty}
+                                                                    value={buyNowQty}
+                                                                    onChange={(e) => {
+                                                                        const v = Math.min(product.stock_qty, Math.max(1, parseInt(e.target.value) || 1));
+                                                                        setBuyNowQty(v);
+                                                                    }}
+                                                                    className="w-16 text-center text-lg font-bold border border-gray-200 rounded-xl py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400/30 focus:border-emerald-400"
+                                                                />
+                                                                <button
+                                                                    onClick={() => setBuyNowQty(q => Math.min(product.stock_qty, q + 1))}
+                                                                    className="w-9 h-9 rounded-full border-2 border-emerald-400 text-emerald-600 font-bold text-lg flex items-center justify-center hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                                                                    disabled={buyNowQty >= product.stock_qty}
+                                                                >
+                                                                    +
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Total price preview */}
+                                                            <div className="flex justify-between items-center text-sm mb-5 bg-emerald-50 rounded-xl px-4 py-2.5">
+                                                                <span className="text-gray-600 font-medium">Total</span>
+                                                                <span className="font-extrabold text-emerald-700">{fmt(product.price * buyNowQty)}</span>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={confirmBuyNow}
+                                                                disabled={buyNowLoading}
+                                                                className="w-full rounded-full bg-emerald-500 py-3 text-sm font-bold text-white hover:bg-emerald-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                                                            >
+                                                                {buyNowLoading ? 'Memproses...' : 'Lanjut ke Checkout'}
+                                                                {!buyNowLoading && (
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-3">
+                                            <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-6 py-3 text-sm font-bold text-red-600">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                Stok Habis
+                                            </span>
+                                            <p className="text-sm text-gray-500">Produk ini sedang tidak tersedia.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

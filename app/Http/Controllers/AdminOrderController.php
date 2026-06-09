@@ -41,9 +41,9 @@ class AdminOrderController extends Controller
             'has_refund'      => $o->refunds->isNotEmpty(),
             'refund_status'   => $o->refunds->first()?->status ?? null,
             'items'           => $o->items->map(fn($item) => [
-                'product_name' => $item->product?->name ?? 'Produk Dihapus',
+                'product_name' => $item->product?->name ?? $item->product_name ?? 'Produk Dihapus',
                 'quantity'     => $item->quantity,
-                'price'        => (float) $item->price,
+                'price'        => (float) $item->price_each,
                 'image_url'    => $item->product?->image_url,
             ]),
         ]);

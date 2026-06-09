@@ -15,7 +15,7 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-            <Head title="Login — Melodi POS" />
+            <Head title="" />
 
             <div className="w-full max-w-[400px]">
                 <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-sm border border-gray-100 relative">
@@ -53,6 +53,15 @@ export default function Login({ status, canResetPassword }) {
                                 className="block w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors bg-white"
                                 placeholder="nama@email.com"
                                 onChange={(e) => setData('email', e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        if (emailRegex.test(data.email)) {
+                                            e.preventDefault();
+                                            document.getElementById('password').focus();
+                                        }
+                                    }
+                                }}
                                 autoFocus
                             />
                             <InputError message={errors.email} className="mt-1" />

@@ -30,10 +30,16 @@ class MidtransService implements PaymentGatewayInterface
 
         $externalId = 'INV-MID-' . $order->order_id . '-' . Str::upper(Str::random(6));
 
-        // Jika API key belum dikonfigurasi, lemparkan Exception
+        // Jika API key belum dikonfigurasi, gunakan mode simulasi (dummy data)
         if (empty($serverKey)) {
-            Log::error("Midtrans Server Key kosong. Tidak dapat membuat pesanan #{$order->order_id}.");
-            throw new \Exception('Kunci Server Midtrans belum dikonfigurasi di sistem.');
+            Log::warning("Midtrans Server Key kosong. Menggunakan mode simulasi offline untuk pesanan #{$order->order_id}.");
+            return [
+                'external_id'    => $externalId,
+                'payment_url'    => route('payment.simulate', $externalId), // Arahkan langsung ke simulator
+                'gateway_ref'    => 'DUMMY_TOKEN_' . Str::random(10),
+                'payment_status' => 'pending',
+                'amount'         => (float) $order->final_amount,
+            ];
         }
 
         // Susun item_details dari item pesanan

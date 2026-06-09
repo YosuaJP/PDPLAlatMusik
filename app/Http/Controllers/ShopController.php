@@ -17,6 +17,9 @@ class ShopController extends Controller
 
         $query = Product::with('category')->where('active', true);
 
+        // Pastikan produk yang habis stok berada di bawah
+        $query->orderByRaw('stock_qty > 0 DESC');
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")

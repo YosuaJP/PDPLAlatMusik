@@ -48,30 +48,8 @@ export default function AdminReport({
 
     return (
         <AdminLayout pageTitle="Rekonsiliasi Keuangan">
-            <Head title="Rekonsiliasi Keuangan & Laporan — Admin" />
+            <Head title="" />
 
-            {/* Server-Side Notifications Feed (Orang 1) */}
-            {server_notifications && server_notifications.length > 0 && (
-                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-slate-700 p-5 shadow-lg mb-6 text-white print:hidden">
-                    <div className="flex items-center justify-between mb-3.5 pb-2 border-b border-slate-700">
-                        <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Notifikasi Server-Side Real-Time</h3>
-                        </div>
-                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-700/60 px-2 py-0.5 rounded-full">
-                            {server_notifications.length} Info
-                        </span>
-                    </div>
-                    <div className="space-y-2 max-h-28 overflow-y-auto pr-2 custom-scrollbar">
-                        {server_notifications.map((notif) => (
-                            <div key={notif.id} className="flex justify-between items-start gap-4 bg-slate-800/40 p-2.5 rounded-xl border border-slate-700/50 hover:bg-slate-800/80 transition-colors">
-                                <p className="text-xs text-emerald-400 font-medium">{notif.message}</p>
-                                <span className="text-[9px] text-slate-500 font-mono whitespace-nowrap">{new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Filter */}
             <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm mb-6 print:hidden">

@@ -36,7 +36,7 @@ export default function Dashboard({ stats, recentOrders, lowStockProducts, topPr
 
     return (
         <AdminLayout pageTitle="Overview">
-            <Head title="Dashboard Admin — Melodi POS" />
+            <Head title="" />
 
             {/* Welcome banner */}
             <div className="mb-8">
@@ -185,7 +185,10 @@ export default function Dashboard({ stats, recentOrders, lowStockProducts, topPr
                                                 {order.status}
                                             </span>
                                             <div>
-                                                <h4 className="text-gray-800 text-sm font-semibold truncate max-w-[120px]">- {order.user_name}</h4>
+                                                <h4 className="text-gray-800 text-sm font-semibold truncate max-w-[160px]" title={order.items?.[0]?.product_name}>
+                                                    {order.items?.[0]?.product_name || 'Produk'} 
+                                                    {order.items?.length > 1 ? ` (+${order.items.length - 1} lainnya)` : ''}
+                                                </h4>
                                                 <p className="text-gray-400 text-xs mt-0.5">{order.created_at}</p>
                                             </div>
                                         </div>

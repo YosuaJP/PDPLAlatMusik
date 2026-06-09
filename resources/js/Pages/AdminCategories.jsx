@@ -68,7 +68,7 @@ export default function AdminCategories({ categories }) {
 
     return (
         <AdminLayout pageTitle="Manajemen Kategori">
-            <Head title="Manajemen Kategori — Melodi POS" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {/* Header Section */}

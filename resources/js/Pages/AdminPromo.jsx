@@ -89,7 +89,7 @@ export default function AdminPromo({ promos }) {
 
     return (
         <AdminLayout pageTitle="Kelola Promo">
-            <Head title="Promo & Diskon — Admin" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

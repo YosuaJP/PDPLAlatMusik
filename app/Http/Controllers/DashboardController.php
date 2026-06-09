@@ -23,7 +23,11 @@ class DashboardController extends Controller
     {
         return Inertia::render('Welcome', [
             'categories' => Category::where('active', true)->get(),
-            'products'   => Product::with('category')->where('active', true)->inRandomOrder()->limit(8)->get(),
+            'products'   => Product::with('category')
+                                ->where('active', true)
+                                ->orderByRaw('stock_qty > 0 DESC')
+                                ->inRandomOrder()
+                                ->limit(8)->get(),
         ]);
     }
 
@@ -103,13 +107,16 @@ class DashboardController extends Controller
         $userId = $this->getCurrentUserId();
 
         $orders = Order::where('user_id', $userId)
-            ->with(['items', 'payment'])
+            ->with(['items', 'payment', 'refunds'])
             ->orderByDesc('created_at')
             ->limit(6)
             ->get()
             ->map(function ($order) {
+                $refund = $order->refunds->first();
+                $firstItem = $order->items->first();
                 return [
                     'order_id'            => $order->order_id,
+                    'first_item_name'     => $firstItem?->product_name ?? 'Produk',
                     'created_at'          => $order->created_at->format('d M Y, H:i'),
                     'created_at_raw'      => $order->created_at->toISOString(),
                     'final_amount'        => (float) $order->final_amount,
@@ -117,12 +124,13 @@ class DashboardController extends Controller
                     'items_count'         => $order->items->sum('quantity'),
                     'payment_status'      => $order->payment->payment_status ?? 'pending',
                     'payment_external_id' => $order->payment->external_id ?? null,
+                    'refund_status'       => $refund?->status ?? null,
                 ];
             });
 
         return Inertia::render('UserDashboard', [
             'categories' => Category::where('active', true)->get(),
-            'products'   => Product::with('category')->where('active', true)->get(),
+            'products'   => Product::with('category')->where('active', true)->orderByRaw('stock_qty > 0 DESC')->get(),
             'orders'     => $orders,
         ]);
     }

@@ -13,7 +13,7 @@ export default function ForgotPassword({ status }) {
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
-            <Head title="Lupa Password — Melodi POS" />
+            <Head title="" />
 
             <div className="w-full max-w-[400px]">
                 <div className="bg-white rounded-[2rem] p-8 sm:p-10 shadow-sm border border-gray-100 relative">

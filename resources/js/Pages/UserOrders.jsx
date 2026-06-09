@@ -25,7 +25,7 @@ function Navbar({ auth, cartCount }) {
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                             <MusicIcon color="#fff" />
                         </div>
-                        <span className="font-bold text-xl text-gray-800 tracking-tight">PawPaw</span>
+                        <span className="font-bold text-xl text-gray-800 tracking-tight">NadaKito</span>
                     </Link>
 
                     {/* Right */}
@@ -124,6 +124,9 @@ export default function UserOrders({ auth, orders }) {
     
     const [refundModal, setRefundModal] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [fileError, setFileError] = useState(null);
+    const [imagePreviews, setImagePreviews] = useState([]);
+    const [videoPreview, setVideoPreview] = useState(null);
 
     // States untuk menulis ulasan
     const [reviewModal, setReviewModal] = useState(false);
@@ -172,8 +175,83 @@ export default function UserOrders({ auth, orders }) {
     const openRefund = (id) => {
         reset();
         clearErrors();
+        setFileError(null);
+        
+        imagePreviews.forEach(url => URL.revokeObjectURL(url));
+        setImagePreviews([]);
+        if (videoPreview) URL.revokeObjectURL(videoPreview);
+        setVideoPreview(null);
+        
         setSelectedOrderId(id);
         setRefundModal(true);
+    };
+
+    const handleImagesChange = (e) => {
+        const newFiles = Array.from(e.target.files);
+        const currentFiles = data.images ? Array.from(data.images) : [];
+        const files = [...currentFiles, ...newFiles];
+        const MAX_IMAGE_MB = 2;
+        const MAX_IMAGES = 3;
+
+        if (files.length > MAX_IMAGES) {
+            setFileError(`Maksimal ${MAX_IMAGES} foto yang bisa diunggah.`);
+            e.target.value = '';
+            return;
+        }
+
+        for (const file of newFiles) {
+            if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+                setFileError(`File "${file.name}" melebihi batas ${MAX_IMAGE_MB}MB per foto.`);
+                e.target.value = '';
+                return;
+            }
+        }
+
+        setFileError(null);
+        const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+        setImagePreviews([...imagePreviews, ...newPreviews]);
+        setData('images', files);
+        e.target.value = '';
+    };
+
+    const removeImage = (index) => {
+        const newImages = [...data.images];
+        newImages.splice(index, 1);
+        
+        const newPreviews = [...imagePreviews];
+        URL.revokeObjectURL(newPreviews[index]);
+        newPreviews.splice(index, 1);
+
+        setData('images', newImages);
+        setImagePreviews(newPreviews);
+    };
+
+    const handleVideoChange = (e) => {
+        const file = e.target.files[0];
+        const MAX_VIDEO_MB = 10;
+
+        if (file && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+            setFileError(`Video "${file.name}" melebihi batas ${MAX_VIDEO_MB}MB.`);
+            e.target.value = '';
+            return;
+        }
+
+        setFileError(null);
+        setData('video', file || null);
+        
+        if (videoPreview) URL.revokeObjectURL(videoPreview);
+        if (file) {
+            setVideoPreview(URL.createObjectURL(file));
+        } else {
+            setVideoPreview(null);
+        }
+        e.target.value = '';
+    };
+
+    const removeVideo = () => {
+        setData('video', null);
+        if (videoPreview) URL.revokeObjectURL(videoPreview);
+        setVideoPreview(null);
     };
 
     const submitRefund = (e) => {
@@ -189,7 +267,7 @@ export default function UserOrders({ auth, orders }) {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-10">
-            <Head title="Pesanan Saya" />
+            <Head title="" />
             <Navbar auth={auth} cartCount={cartCount} />
 
             <main className="max-w-4xl mx-auto px-4 mt-8">
@@ -208,8 +286,16 @@ export default function UserOrders({ auth, orders }) {
                                         <p className="font-bold text-sm text-gray-800 font-mono">ORD-{String(ord.order_id).padStart(8, '0')}</p>
                                         <p className="text-xs text-gray-400 mt-1">{ord.created_at}</p>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${statusBadge[ord.status] || 'bg-gray-100 text-gray-600'}`}>
-                                        {statusText[ord.status] || ord.status}
+                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                        ord.refund_status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                        ord.refund_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                        ord.refund_status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                        statusBadge[ord.status] || 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                        {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                         ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                         ord.refund_status === 'pending' ? 'Refund Diproses' :
+                                         statusText[ord.status] || ord.status}
                                     </span>
                                 </div>
 
@@ -231,8 +317,8 @@ export default function UserOrders({ auth, orders }) {
                                                 </div>
                                             </div>
                                             
-                                            {/* Tombol Ulasan per Item jika status Delivered / Completed */}
-                                            {(ord.status === 'delivered' || ord.status === 'completed') && (
+                                            {/* Tombol Ulasan per Item: hanya jika delivered/completed DAN refund TIDAK disetujui */}
+                                            {(ord.status === 'delivered' || ord.status === 'completed') && ord.refund_status !== 'approved' && (
                                                 <div className="flex-shrink-0">
                                                     {item.is_reviewed ? (
                                                         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
@@ -276,23 +362,49 @@ export default function UserOrders({ auth, orders }) {
                                                 <Link href={route('orders.show', ord.order_id)} className="px-4 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold transition-colors">
                                                     Detail
                                                 </Link>
-                                                <button onClick={() => handleReceive(ord.order_id)} className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors">
-                                                    Diterima
-                                                </button>
+                                                {!ord.has_refund && (
+                                                    <button onClick={() => openRefund(ord.order_id)} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
+                                                        Ajukan Refund
+                                                    </button>
+                                                )}
+                                                {ord.has_refund && (
+                                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize ${
+                                                        ord.refund_status === 'approved'  ? 'bg-emerald-100 text-emerald-700' :
+                                                        ord.refund_status === 'rejected'  ? 'bg-red-100 text-red-600' :
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                        {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                         ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                         'Refund Diproses'}
+                                                    </span>
+                                                )}
+                                                {!ord.has_refund && (
+                                                    <button onClick={() => handleReceive(ord.order_id)} className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors">
+                                                        Diterima
+                                                    </button>
+                                                )}
                                             </>
                                         ) : (
                                             <>
                                                 <Link href={route('orders.show', ord.order_id)} className="px-4 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg text-xs font-bold transition-colors">
                                                     Detail
                                                 </Link>
+                                                {/* Tombol Refund: hanya jika belum refund */}
                                                 {(ord.status === 'delivered' || ord.status === 'completed') && !ord.has_refund && (
                                                     <button onClick={() => openRefund(ord.order_id)} className="px-4 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors">
                                                         Ajukan Refund
                                                     </button>
                                                 )}
+                                                {/* Status badge refund */}
                                                 {ord.has_refund && (
-                                                    <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold capitalize">
-                                                        Refund {ord.refund_status}
+                                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                                                        ord.refund_status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                        ord.refund_status === 'rejected' ? 'bg-red-100 text-red-600' :
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                        {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                         ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                         'Refund Diproses'}
                                                     </span>
                                                 )}
                                             </>
@@ -326,10 +438,10 @@ export default function UserOrders({ auth, orders }) {
                                 </p>
                             </div>
 
-                            {errors.message && (
+                            {(errors.message || fileError) && (
                                 <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-5">
                                     <p className="text-[11px] text-red-800 font-medium">
-                                        <span className="font-bold">Error:</span> {errors.message}
+                                        <span className="font-bold">Error:</span> {fileError || errors.message}
                                     </p>
                                 </div>
                             )}
@@ -350,36 +462,78 @@ export default function UserOrders({ auth, orders }) {
 
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-700 mb-2">Foto Barang (Max 3, Max 2MB/foto)</label>
-                                    <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer relative transition-colors">
-                                        <input
-                                            type="file"
-                                            multiple
-                                            accept="image/*"
-                                            onChange={e => setData('images', e.target.files)}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        <div className="flex flex-col items-center justify-center">
-                                            <svg className="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                            <p className="text-xs text-gray-500 font-medium">{data.images ? `${data.images.length} file terpilih` : 'Add'}</p>
+                                    {data.images && data.images.length > 0 ? (
+                                        <div className="flex flex-wrap gap-3">
+                                            {imagePreviews.map((preview, idx) => (
+                                                <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200 group">
+                                                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeImage(idx)}
+                                                        className="absolute top-1 right-1 bg-white text-red-500 rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {data.images.length < 3 && (
+                                                <div className="relative w-20 h-20 border border-dashed border-gray-300 rounded-xl flex items-center justify-center hover:bg-gray-50 cursor-pointer transition-colors">
+                                                    <input
+                                                        type="file"
+                                                        multiple
+                                                        accept="image/*"
+                                                        onChange={handleImagesChange}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer relative transition-colors">
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={handleImagesChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center justify-center">
+                                                <svg className="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                <p className="text-xs text-gray-500 font-medium">Klik untuk mengunggah foto</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     {errors.images && <p className="text-red-500 text-[10px] mt-1">{errors.images}</p>}
                                 </div>
 
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-700 mb-2">Video Unboxing (Max 1, Max 10MB)</label>
-                                    <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer relative transition-colors">
-                                        <input
-                                            type="file"
-                                            accept="video/*"
-                                            onChange={e => setData('video', e.target.files[0])}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        />
-                                        <div className="flex flex-col items-center justify-center">
-                                            <svg className="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                            <p className="text-xs text-gray-500 font-medium">{data.video ? data.video.name : 'Upload Video (MP4)'}</p>
+                                    {data.video ? (
+                                        <div className="relative w-full h-32 rounded-xl overflow-hidden border border-gray-200 group bg-black">
+                                            <video src={videoPreview} className="w-full h-full object-contain" controls />
+                                            <button
+                                                type="button"
+                                                onClick={removeVideo}
+                                                className="absolute top-2 right-2 bg-white text-red-500 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="border border-dashed border-gray-300 rounded-xl p-4 text-center hover:bg-gray-50 cursor-pointer relative transition-colors">
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                onChange={handleVideoChange}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <div className="flex flex-col items-center justify-center">
+                                                <svg className="w-6 h-6 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                                <p className="text-xs text-gray-500 font-medium">Klik untuk mengunggah video (MP4)</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     {errors.video && <p className="text-red-500 text-[10px] mt-1">{errors.video}</p>}
                                 </div>
 
@@ -387,7 +541,7 @@ export default function UserOrders({ auth, orders }) {
                                     <button type="button" onClick={() => setRefundModal(false)} className="flex-1 py-2.5 border border-gray-200 text-gray-600 font-bold text-xs rounded-xl hover:bg-gray-50 transition-colors">
                                         Batal
                                     </button>
-                                    <button type="submit" disabled={processing} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50">
+                                    <button type="submit" disabled={processing || !!fileError} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50">
                                         {processing ? 'Loading...' : 'Ajukan Refund'}
                                     </button>
                                 </div>

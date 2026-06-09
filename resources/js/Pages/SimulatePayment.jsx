@@ -381,7 +381,7 @@ export default function SimulatePayment({ payment }) {
                 display: 'flex',
                 flexDirection: 'column',
             }}>
-                <Head title="Pilih Metode Pembayaran — NadaKito" />
+                <Head title="" />
                 
                 <style dangerouslySetInnerHTML={{__html: `
                     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
@@ -789,7 +789,7 @@ export default function SimulatePayment({ payment }) {
             display: 'flex', 
             flexDirection: 'column'
         }}>
-            <Head title="Midtrans Payment Simulator - BCA VA" />
+            <Head title="" />
 
             {/* Embedded styles for simulator animations and custom states */}
             <style dangerouslySetInnerHTML={{__html: `

@@ -35,7 +35,7 @@ export default function AdminPerformance({ products, categories, category_perfor
 
     return (
         <AdminLayout pageTitle="Performa Produk & Kategori">
-            <Head title="Performa Produk — Admin" />
+            <Head title="" />
 
             {/* Filter Card */}
             <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm mb-6 print:hidden">

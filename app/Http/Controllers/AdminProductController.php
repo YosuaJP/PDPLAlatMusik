@@ -56,7 +56,7 @@ class AdminProductController extends Controller
             $imageUrl = '/images/products/' . $filename;
         }
 
-        Product::create([
+        $product = Product::create([
             'category_id' => $request->category_id,
             'name'        => $request->name,
             'description' => $request->description,
@@ -67,6 +67,18 @@ class AdminProductController extends Controller
             'active'      => $request->boolean('active'),
             'updated_at'  => now(),
         ]);
+
+        if ($product->stock_qty > 0) {
+            \App\Models\StockMovement::create([
+                'product_id'    => $product->product_id,
+                'created_by'    => auth()->id(),
+                'order_id'      => null,
+                'movement_type' => 'in',
+                'quantity'      => $product->stock_qty,
+                'notes'         => "Stok awal produk baru",
+                'created_at'    => now(),
+            ]);
+        }
 
         return back()->with('success', 'Produk berhasil ditambahkan.');
     }
@@ -106,17 +118,33 @@ class AdminProductController extends Controller
             $imageUrl = '/images/products/' . $filename;
         }
 
+        $oldStock = $product->stock_qty;
+        $newStock = $request->stock_qty;
+
         $product->update([
             'category_id' => $request->category_id,
             'name'        => $request->name,
             'description' => $request->description,
             'price'       => $request->price,
-            'stock_qty'   => $request->stock_qty,
+            'stock_qty'   => $newStock,
             'sku'         => $request->sku,
             'image_url'   => $imageUrl,
             'active'      => $request->boolean('active'),
             'updated_at'  => now(),
         ]);
+
+        if ($oldStock !== $newStock) {
+            $diff = $newStock - $oldStock;
+            \App\Models\StockMovement::create([
+                'product_id'    => $product->product_id,
+                'created_by'    => auth()->id(),
+                'order_id'      => null,
+                'movement_type' => $diff > 0 ? 'in' : 'out',
+                'quantity'      => abs($diff),
+                'notes'         => "Update produk (Edit stok dari {$oldStock} ke {$newStock})",
+                'created_at'    => now(),
+            ]);
+        }
 
         return back()->with('success', 'Produk berhasil diperbarui.');
     }

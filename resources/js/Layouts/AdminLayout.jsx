@@ -178,7 +178,7 @@ export default function AdminLayout({ children, pageTitle }) {
                         </svg>
                     </div>
                     <div>
-                        <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0, lineHeight: 1 }}>Melodi POS</p>
+                        <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0, lineHeight: 1 }}>NadaKito</p>
                         <p style={{ fontSize: 11, color: '#6b7280', margin: '3px 0 0', lineHeight: 1 }}>Admin Panel</p>
                     </div>
                 </div>
@@ -226,7 +226,7 @@ export default function AdminLayout({ children, pageTitle }) {
             )}
 
             {/* Sidebar Desktop */}
-            <aside style={{
+            <aside className="print:hidden" style={{
                 width: 220,
                 background: '#fff',
                 borderRight: '1px solid #e5e7eb',
@@ -239,7 +239,7 @@ export default function AdminLayout({ children, pageTitle }) {
             </aside>
 
             {/* Sidebar Mobile Drawer */}
-            <aside style={{
+            <aside className="print:hidden" style={{
                 position: 'fixed', top: 0, left: 0, height: '100%',
                 width: 220, background: '#fff',
                 borderRight: '1px solid #e5e7eb',
@@ -254,7 +254,7 @@ export default function AdminLayout({ children, pageTitle }) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
                 {/* Top Header */}
-                <header style={{
+                <header className="print:hidden" style={{
                     background: '#fff',
                     borderBottom: '1px solid #e5e7eb',
                     padding: '0 24px',

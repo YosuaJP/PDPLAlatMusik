@@ -62,7 +62,7 @@ export default function AdminUser({ users, filters }) {
 
     return (
         <AdminLayout pageTitle="Daftar User">
-            <Head title="Daftar Pengguna — Admin" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {/* Header */}

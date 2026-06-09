@@ -145,6 +145,24 @@ class PaymentController extends Controller
                     'changed_at' => now(),
                 ]);
 
+                // 4. Potong stok & catat mutasi setelah pembayaran dikonfirmasi
+                foreach ($order->items as $item) {
+                    $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                    if (!$product) continue;
+
+                    $product->decrement('stock_qty', $item->quantity);
+
+                    StockMovement::create([
+                        'product_id'    => $product->product_id,
+                        'created_by'    => auth()->id() ?? $order->user_id,
+                        'order_id'      => $order->order_id,
+                        'movement_type' => 'out',
+                        'quantity'      => $item->quantity,
+                        'notes'         => "Stok keluar: pembayaran pesanan ORD-" . str_pad($order->order_id, 8, '0', STR_PAD_LEFT) . " dikonfirmasi lunas.",
+                        'created_at'    => now(),
+                    ]);
+                }
+
             } else {
                 // Status: failed / expired
                 // 1. Update status Pembayaran
@@ -165,26 +183,10 @@ class PaymentController extends Controller
                     'changed_by' => auth()->id() ?? $order->user_id,
                     'old_status' => $oldOrderStatus,
                     'new_status' => 'cancelled',
-                    'note'       => "Pembayaran gagal atau kedaluwarsa melalui Simulasi {$gatewayName}.",
+                    'note'       => "Pembayaran gagal atau kedaluwarsa melalui Simulasi {$gatewayName}. Pesanan dibatalkan.",
                     'changed_at' => now(),
                 ]);
-
-                // 4. KEMBALIKAN STOK yang sempat dipotong
-                foreach ($order->items as $item) {
-                    $product = $item->product;
-                    $product->increment('stock_qty', $item->quantity);
-
-                    // Catat mutasi penambahan stok kembali (Adjustment / Cancel)
-                    StockMovement::create([
-                        'product_id'    => $product->product_id,
-                        'created_by'    => auth()->id() ?? $order->user_id,
-                        'order_id'      => $order->order_id,
-                        'movement_type' => 'in',
-                        'quantity'      => $item->quantity,
-                        'notes'         => "Pengembalian stok karena kegagalan pembayaran pesanan #{$order->order_id}",
-                        'created_at'    => now(),
-                    ]);
-                }
+                // Stok tidak perlu dikembalikan karena belum pernah dipotong saat order dibuat.
             }
         });
 
@@ -285,6 +287,24 @@ class PaymentController extends Controller
                         'note'       => 'Pembayaran lunas dikonfirmasi otomatis melalui Webhook Midtrans.',
                         'changed_at' => now(),
                     ]);
+
+                    // Potong stok & catat mutasi setelah pembayaran dikonfirmasi
+                    foreach ($order->items as $item) {
+                        $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                        if (!$product) continue;
+
+                        $product->decrement('stock_qty', $item->quantity);
+
+                        StockMovement::create([
+                            'product_id'    => $product->product_id,
+                            'created_by'    => $order->user_id,
+                            'order_id'      => $order->order_id,
+                            'movement_type' => 'out',
+                            'quantity'      => $item->quantity,
+                            'notes'         => "Stok keluar: pembayaran pesanan ORD-" . str_pad($order->order_id, 8, '0', STR_PAD_LEFT) . " dikonfirmasi lunas via Midtrans.",
+                            'created_at'    => now(),
+                        ]);
+                    }
                 } else {
                     $payment->update([
                         'payment_status' => 'failed',
@@ -300,25 +320,10 @@ class PaymentController extends Controller
                         'changed_by' => $order->user_id,
                         'old_status' => $oldOrderStatus,
                         'new_status' => 'cancelled',
-                        'note'       => 'Pembayaran gagal/dibatalkan melalui Webhook Midtrans.',
+                        'note'       => 'Pembayaran gagal/dibatalkan melalui Webhook Midtrans. Pesanan dibatalkan.',
                         'changed_at' => now(),
                     ]);
-
-                    // Restore stock
-                    foreach ($order->items as $item) {
-                         $product = $item->product;
-                         $product->increment('stock_qty', $item->quantity);
-
-                         StockMovement::create([
-                             'product_id'    => $product->product_id,
-                             'created_by'    => $order->user_id,
-                             'order_id'      => $order->order_id,
-                             'movement_type' => 'in',
-                             'quantity'      => $item->quantity,
-                             'notes'         => "Pengembalian stok karena kegagalan pembayaran pesanan #{$order->order_id}",
-                             'created_at'    => now(),
-                         ]);
-                    }
+                    // Stok tidak perlu dikembalikan karena belum pernah dipotong saat order dibuat.
                 }
             });
         }
@@ -403,6 +408,24 @@ class PaymentController extends Controller
                         'changed_at' => now(),
                     ]);
 
+                    // Potong stok & catat mutasi setelah pembayaran dikonfirmasi
+                    foreach ($order->items as $item) {
+                        $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                        if (!$product) continue;
+
+                        $product->decrement('stock_qty', $item->quantity);
+
+                        StockMovement::create([
+                            'product_id'    => $product->product_id,
+                            'created_by'    => $order->user_id,
+                            'order_id'      => $order->order_id,
+                            'movement_type' => 'out',
+                            'quantity'      => $item->quantity,
+                            'notes'         => "Stok keluar: pembayaran pesanan ORD-" . str_pad($order->order_id, 8, '0', STR_PAD_LEFT) . " dikonfirmasi lunas via Xendit.",
+                            'created_at'    => now(),
+                        ]);
+                    }
+
                 } else {
                     $payment->update([
                         'payment_status'  => 'failed',
@@ -421,22 +444,7 @@ class PaymentController extends Controller
                         'note'       => 'Invoice Xendit kedaluwarsa (EXPIRED). Pesanan otomatis dibatalkan.',
                         'changed_at' => now(),
                     ]);
-
-                    // Kembalikan stok produk
-                    foreach ($order->items as $item) {
-                        $product = $item->product;
-                        $product->increment('stock_qty', $item->quantity);
-
-                        StockMovement::create([
-                            'product_id'    => $product->product_id,
-                            'created_by'    => $order->user_id,
-                            'order_id'      => $order->order_id,
-                            'movement_type' => 'in',
-                            'quantity'      => $item->quantity,
-                            'notes'         => "Pengembalian stok karena invoice Xendit expired pada pesanan #{$order->order_id}",
-                            'created_at'    => now(),
-                        ]);
-                    }
+                    // Stok tidak perlu dikembalikan karena belum pernah dipotong saat order dibuat.
                 }
             });
         }

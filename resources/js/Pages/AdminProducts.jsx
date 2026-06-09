@@ -114,7 +114,7 @@ export default function AdminProducts({ products, categories, filters }) {
 
     return (
         <AdminLayout pageTitle="Manajemen Produk">
-            <Head title="Manajemen Produk — Melodi POS" />
+            <Head title="" />
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                 {/* Header & Controls Section */}
