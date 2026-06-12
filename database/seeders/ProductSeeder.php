@@ -9,6 +9,24 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        // Copy images from base_path('foto') to public_path('images/products')
+        $fotoDir = base_path('foto');
+        $destDir = public_path('images/products');
+
+        if (!\Illuminate\Support\Facades\File::exists($destDir)) {
+            \Illuminate\Support\Facades\File::makeDirectory($destDir, 0755, true);
+        }
+
+        if (\Illuminate\Support\Facades\File::exists($fotoDir)) {
+            $files = \Illuminate\Support\Facades\File::files($fotoDir);
+            foreach ($files as $file) {
+                \Illuminate\Support\Facades\File::copy(
+                    $file->getPathname(),
+                    $destDir . '/' . $file->getFilename()
+                );
+            }
+        }
+
         $products = [
             // === GITAR (category_id=1) ===
             [
@@ -18,7 +36,7 @@ class ProductSeeder extends Seeder
                 'price'       => 1250000,
                 'stock_qty'   => 15,
                 'sku'         => 'GTR-YAMF310',
-                'image_url'   => 'https://placehold.co/400x400?text=Yamaha+F310',
+                'image_url'   => '/images/products/Yamaha F310 Acoustic Guitar.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -29,7 +47,7 @@ class ProductSeeder extends Seeder
                 'price'       => 8500000,
                 'stock_qty'   => 8,
                 'sku'         => 'GTR-FENSTRAT',
-                'image_url'   => 'https://placehold.co/400x400?text=Fender+Strat',
+                'image_url'   => '/images/products/Fender Stratocaster Standard Electric Guitar.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -40,7 +58,7 @@ class ProductSeeder extends Seeder
                 'price'       => 25000000,
                 'stock_qty'   => 3,
                 'sku'         => 'GTR-GIBLESPAUL',
-                'image_url'   => 'https://placehold.co/400x400?text=Gibson+LP',
+                'image_url'   => '/images/products/Gibson Les Paul Standard Electric Guitar.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -51,7 +69,7 @@ class ProductSeeder extends Seeder
                 'price'       => 14500000,
                 'stock_qty'   => 5,
                 'sku'         => 'GTR-TAY114CE',
-                'image_url'   => 'https://placehold.co/400x400?text=Taylor+114ce',
+                'image_url'   => '/images/products/Taylor 114ce Acoustic Electric Guitar.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -64,7 +82,7 @@ class ProductSeeder extends Seeder
                 'price'       => 2800000,
                 'stock_qty'   => 10,
                 'sku'         => 'BSS-SQRJAZZ',
-                'image_url'   => 'https://placehold.co/400x400?text=Squier+Jazz+Bass',
+                'image_url'   => '/images/products/Squier Affinity Jazz Bass.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -75,7 +93,7 @@ class ProductSeeder extends Seeder
                 'price'       => 6500000,
                 'stock_qty'   => 6,
                 'sku'         => 'BSS-IBANSR505',
-                'image_url'   => 'https://placehold.co/400x400?text=Ibanez+SR505',
+                'image_url'   => '/images/products/Ibanez SR505 5-String Bass.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -88,7 +106,7 @@ class ProductSeeder extends Seeder
                 'price'       => 9500000,
                 'stock_qty'   => 4,
                 'sku'         => 'DRM-PEARLEXX5',
-                'image_url'   => 'https://placehold.co/400x400?text=Pearl+Export+EXX',
+                'image_url'   => '/images/products/Pearl Export EXX 5-Piece Drum Set.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -99,7 +117,7 @@ class ProductSeeder extends Seeder
                 'price'       => 1350000,
                 'stock_qty'   => 20,
                 'sku'         => 'DRM-MEINLCAJ',
-                'image_url'   => 'https://placehold.co/400x400?text=Meinl+Cajon',
+                'image_url'   => '/images/products/Meinl Cajon Box Drum.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -110,7 +128,7 @@ class ProductSeeder extends Seeder
                 'price'       => 22000000,
                 'stock_qty'   => 2,
                 'sku'         => 'DRM-ROLTD17',
-                'image_url'   => 'https://placehold.co/400x400?text=Roland+TD-17',
+                'image_url'   => '/images/products/Roland TD-17KVX Electronic Drum Kit.png',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -123,18 +141,18 @@ class ProductSeeder extends Seeder
                 'price'       => 5200000,
                 'stock_qty'   => 7,
                 'sku'         => 'KBD-YAMP45',
-                'image_url'   => 'https://placehold.co/400x400?text=Yamaha+P-45',
+                'image_url'   => '/images/products/Yamaha P-45 Digital Piano.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
             [
                 'category_id' => 4,
                 'name'        => 'Roland JUNO-DS61 Synthesizer',
-                'description' => 'Synthesizer Roland JUNO-DS61 dengan 61 tuts dan 128-voice polyphony. Cocok untuk stage performance.',
+                'description' => 'Synthesizer Roland JUNO-DS61 dengan 61 tuts and 128-voice polyphony. Cocok untuk stage performance.',
                 'price'       => 11500000,
                 'stock_qty'   => 4,
                 'sku'         => 'KBD-ROLJUNO61',
-                'image_url'   => 'https://placehold.co/400x400?text=Roland+JUNO-DS61',
+                'image_url'   => '/images/products/Roland JUNO-DS61 Synthesizer.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -147,7 +165,7 @@ class ProductSeeder extends Seeder
                 'price'       => 13500000,
                 'stock_qty'   => 5,
                 'sku'         => 'TUP-YAMYAS280',
-                'image_url'   => 'https://placehold.co/400x400?text=Yamaha+YAS-280',
+                'image_url'   => '/images/products/Yamaha YAS-280 Alto Saxophone.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -158,7 +176,7 @@ class ProductSeeder extends Seeder
                 'price'       => 4800000,
                 'stock_qty'   => 8,
                 'sku'         => 'TUP-JUPJTR700',
-                'image_url'   => 'https://placehold.co/400x400?text=Jupiter+JTR700',
+                'image_url'   => '/images/products/Jupiter JTR700 Bb Trumpet.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -171,7 +189,7 @@ class ProductSeeder extends Seeder
                 'price'       => 95000,
                 'stock_qty'   => 100,
                 'sku'         => 'AKS-ERBSLINKY',
-                'image_url'   => 'https://placehold.co/400x400?text=Ernie+Ball+Slinky',
+                'image_url'   => '/images/products/Ernie Ball Regular Slinky Guitar Strings.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -182,7 +200,7 @@ class ProductSeeder extends Seeder
                 'price'       => 75000,
                 'stock_qty'   => 150,
                 'sku'         => 'AKS-DUNLPICK12',
-                'image_url'   => 'https://placehold.co/400x400?text=Dunlop+Tortex',
+                'image_url'   => '/images/products/Dunlop Tortex Guitar Pick (Assorted).webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -193,7 +211,7 @@ class ProductSeeder extends Seeder
                 'price'       => 180000,
                 'stock_qty'   => 50,
                 'sku'         => 'AKS-KORGCA50',
-                'image_url'   => 'https://placehold.co/400x400?text=KORG+CA-50',
+                'image_url'   => '/images/products/KORG CA-50 Chromatic Tuner.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -206,7 +224,7 @@ class ProductSeeder extends Seeder
                 'price'       => 1650000,
                 'stock_qty'   => 20,
                 'sku'         => 'STD-FOCSSOLO3',
-                'image_url'   => 'https://placehold.co/400x400?text=Focusrite+Scarlett+Solo',
+                'image_url'   => '/images/products/Focusrite Scarlett Solo 3rd Gen Audio Interface.jpg',
                 'active'      => true,
                 'updated_at'  => now(),
             ],
@@ -217,7 +235,7 @@ class ProductSeeder extends Seeder
                 'price'       => 1450000,
                 'stock_qty'   => 25,
                 'sku'         => 'STD-SHURESM58',
-                'image_url'   => 'https://placehold.co/400x400?text=Shure+SM58',
+                'image_url'   => '/images/products/Shure SM58 Dynamic Vocal Microphone.webp',
                 'active'      => true,
                 'updated_at'  => now(),
             ],

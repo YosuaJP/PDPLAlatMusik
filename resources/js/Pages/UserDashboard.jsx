@@ -362,12 +362,12 @@ export default function UserDashboard({ auth, products, categories }) {
                     <div className="hidden lg:block absolute right-12 top-1/2 -translate-y-1/2">
                         <div className="relative w-80 h-72">
                             <div className="absolute right-0 top-0 w-52 h-60 bg-gray-200 rounded-3xl transform rotate-6 shadow-xl border-4 border-white overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Gitar" className="w-full h-full object-cover" />
+                                <img src="/images/products/Fender Stratocaster Standard Electric Guitar.webp" alt="Gitar" className="w-full h-full object-cover" />
                             </div>
                             <div className="absolute right-10 top-6 w-52 h-60 bg-gray-200 rounded-3xl transform -rotate-3 shadow-2xl border-4 border-white overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Piano" className="w-full h-full object-cover" />
+                                <img src="/images/products/Yamaha P-45 Digital Piano.jpg" alt="Piano" className="w-full h-full object-cover" />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                                    <p className="text-white font-bold text-base">Grand Piano</p>
+                                    <p className="text-white font-bold text-base">Digital Piano</p>
                                     <p className="text-gray-300 text-xs">Premium Quality</p>
                                 </div>
                             </div>
