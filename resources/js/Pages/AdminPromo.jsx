@@ -2,11 +2,6 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
 
-const promoTypeBadge = {
-    fixed:   { label: 'FIXED',   cls: 'bg-blue-100 text-blue-700' },
-    percent: { cls: 'bg-orange-100 text-orange-700' },
-};
-
 function Toggle({ active, onToggle }) {
     return (
         <button
@@ -22,7 +17,13 @@ function formatRp(val) {
     return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
 }
 
-export default function AdminPromo({ promos }) {
+const SCOPE_LABELS = {
+    global:   { label: 'Global',           cls: 'bg-gray-100 text-gray-600' },
+    category: { label: 'Kategori Tertentu', cls: 'bg-purple-100 text-purple-700' },
+    product:  { label: 'Produk Tertentu',   cls: 'bg-blue-100 text-blue-700' },
+};
+
+export default function AdminPromo({ promos, categories = [], products = [] }) {
     const [isModalOpen, setIsModalOpen]   = useState(false);
     const [editMode, setEditMode]         = useState(false);
     const [currentId, setCurrentId]       = useState(null);
@@ -39,6 +40,10 @@ export default function AdminPromo({ promos }) {
         start_date:          '',
         end_date:            '',
         active:              true,
+        scope:               'global',
+        scope_category_ids:  [],
+        scope_product_ids:   [],
+        quota:               '',
     });
 
     const openCreate = () => {
@@ -57,6 +62,10 @@ export default function AdminPromo({ promos }) {
             start_date:          promo.start_date ? promo.start_date.split('T')[0] : '',
             end_date:            promo.end_date   ? promo.end_date.split('T')[0]   : '',
             active:              promo.active ?? true,
+            scope:               promo.scope || 'global',
+            scope_category_ids:  promo.scope_category_ids || [],
+            scope_product_ids:   promo.scope_product_ids  || [],
+            quota:               promo.quota ? String(promo.quota) : '',
         });
         setCurrentId(promo.promo_id);
         setEditMode(true);
@@ -85,6 +94,13 @@ export default function AdminPromo({ promos }) {
         });
     };
 
+    // Toggle multi-select for IDs
+    const toggleId = (field, id) => {
+        const current = data[field] || [];
+        const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id];
+        setData(field, next);
+    };
+
     const promoList = promos ?? [];
 
     return (
@@ -95,7 +111,7 @@ export default function AdminPromo({ promos }) {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-xl font-bold text-gray-800">Daftar Promo</h2>
-                        <p className="text-gray-400 text-xs mt-1">Kelola kode diskon toko atau produk spesifik.</p>
+                        <p className="text-gray-400 text-xs mt-1">Kelola kode diskon global, per-kategori, atau per-produk.</p>
                     </div>
                     <button
                         onClick={openCreate}
@@ -112,10 +128,12 @@ export default function AdminPromo({ promos }) {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-[11px] font-bold uppercase tracking-wider">
-                                <th className="px-6 py-4">Kode & Target</th>
+                                <th className="px-6 py-4">Kode & Nama</th>
+                                <th className="px-6 py-4">Cakupan</th>
                                 <th className="px-6 py-4">Periode</th>
                                 <th className="px-6 py-4">Diskon</th>
                                 <th className="px-6 py-4">Min. Belanja</th>
+                                <th className="px-6 py-4 text-center">Terpakai / Kuota</th>
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4 text-right">Aksi</th>
                             </tr>
@@ -129,10 +147,15 @@ export default function AdminPromo({ promos }) {
                                                 {promo.promo_code}
                                             </span>
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500">
-                                                {promo.promo_type === 'fixed' ? 'Potongan Tetap' : 'Persen (%)'}
+                                                {promo.promo_type === 'fixed' ? 'Potongan Tetap' : promo.promo_type === 'free_shipping' ? 'Gratis Ongkir' : 'Persen (%)'}
                                             </span>
                                         </div>
                                         <p className="font-semibold text-gray-800">{promo.promo_name}</p>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${SCOPE_LABELS[promo.scope || 'global']?.cls}`}>
+                                            {SCOPE_LABELS[promo.scope || 'global']?.label}
+                                        </span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <p className="text-xs text-gray-700">{promo.start_date?.split('T')[0] ?? '—'}</p>
@@ -143,11 +166,18 @@ export default function AdminPromo({ promos }) {
                                         <span className="text-emerald-600 font-bold text-sm">
                                             {promo.promo_type === 'percent'
                                                 ? `${Number(promo.discount_value)}%`
-                                                : formatRp(promo.discount_value)}
+                                                : promo.promo_type === 'free_shipping'
+                                                    ? 'Gratis'
+                                                    : formatRp(promo.discount_value)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm text-gray-700">
                                         {Number(promo.min_purchase) > 0 ? formatRp(promo.min_purchase) : <span className="text-gray-400">Rp 0</span>}
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-sm">
+                                        <span className="font-bold text-gray-800">{promo.used_quota || 0}</span>
+                                        <span className="text-gray-400 mx-1">/</span>
+                                        <span className="text-gray-600">{promo.quota ? promo.quota : '∞'}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <Toggle active={promo.active} onToggle={() => handleToggle(promo.promo_id)} />
@@ -177,7 +207,7 @@ export default function AdminPromo({ promos }) {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400">Belum ada promo. Tambahkan promo pertama!</td>
+                                    <td colSpan={7} className="px-6 py-10 text-center text-gray-400">Belum ada promo. Tambahkan promo pertama!</td>
                                 </tr>
                             )}
                         </tbody>
@@ -198,12 +228,13 @@ export default function AdminPromo({ promos }) {
                             </button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="p-6 space-y-4">
+                            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                                {/* Row 1: Kode & Tipe */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Kode Promo</label>
                                         <input type="text" value={data.promo_code} onChange={e => setData('promo_code', e.target.value)}
-                                            placeholder="cth: HOSE50"
+                                            placeholder="cth: NEWYEAR2026"
                                             className={`w-full px-3.5 py-2.5 rounded-xl border ${errors.promo_code ? 'border-red-400' : 'border-gray-200'} focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm uppercase`} />
                                         {errors.promo_code && <span className="text-red-500 text-xs mt-1 block">{errors.promo_code}</span>}
                                     </div>
@@ -213,10 +244,12 @@ export default function AdminPromo({ promos }) {
                                             className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm">
                                             <option value="fixed">Potongan Tetap (Rp)</option>
                                             <option value="percent">Persentase (%)</option>
+                                            <option value="free_shipping">Gratis Ongkir</option>
                                         </select>
                                     </div>
                                 </div>
 
+                                {/* Nama */}
                                 <div>
                                     <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Nama Promo</label>
                                     <input type="text" value={data.promo_name} onChange={e => setData('promo_name', e.target.value)}
@@ -225,17 +258,20 @@ export default function AdminPromo({ promos }) {
                                     {errors.promo_name && <span className="text-red-500 text-xs mt-1 block">{errors.promo_name}</span>}
                                 </div>
 
+                                {/* Nilai & Min Belanja */}
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">
-                                            Nilai Diskon {data.promo_type === 'percent' ? '(%)' : '(Rp)'}
-                                        </label>
-                                        <input type="number" min="0" value={data.discount_value} onChange={e => setData('discount_value', e.target.value)}
-                                            placeholder={data.promo_type === 'percent' ? 'cth: 10' : 'cth: 50000'}
-                                            className={`w-full px-3.5 py-2.5 rounded-xl border ${errors.discount_value ? 'border-red-400' : 'border-gray-200'} focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm`} />
-                                        {errors.discount_value && <span className="text-red-500 text-xs mt-1 block">{errors.discount_value}</span>}
-                                    </div>
-                                    <div>
+                                    {data.promo_type !== 'free_shipping' && (
+                                        <div>
+                                            <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">
+                                                Nilai Diskon {data.promo_type === 'percent' ? '(%)' : '(Rp)'}
+                                            </label>
+                                            <input type="number" min="0" value={data.discount_value} onChange={e => setData('discount_value', e.target.value)}
+                                                placeholder={data.promo_type === 'percent' ? 'cth: 10' : 'cth: 50000'}
+                                                className={`w-full px-3.5 py-2.5 rounded-xl border ${errors.discount_value ? 'border-red-400' : 'border-gray-200'} focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm`} />
+                                            {errors.discount_value && <span className="text-red-500 text-xs mt-1 block">{errors.discount_value}</span>}
+                                        </div>
+                                    )}
+                                    <div className={data.promo_type === 'free_shipping' ? "col-span-2" : ""}>
                                         <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Min. Belanja (Rp)</label>
                                         <input type="number" min="0" value={data.min_purchase} onChange={e => setData('min_purchase', e.target.value)}
                                             placeholder="cth: 100000"
@@ -252,6 +288,7 @@ export default function AdminPromo({ promos }) {
                                     </div>
                                 )}
 
+                                {/* Tanggal */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Tanggal Mulai</label>
@@ -267,6 +304,80 @@ export default function AdminPromo({ promos }) {
                                     </div>
                                 </div>
 
+                                {/* Kuota */}
+                                <div>
+                                    <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Batas Kuota Penggunaan</label>
+                                    <input type="number" min="1" value={data.quota} onChange={e => setData('quota', e.target.value)}
+                                        placeholder="Kosongkan jika kuota tidak terbatas (unlimited)"
+                                        className={`w-full px-3.5 py-2.5 rounded-xl border ${errors.quota ? 'border-red-400' : 'border-gray-200'} focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm`} />
+                                    {errors.quota && <span className="text-red-500 text-xs mt-1 block">{errors.quota}</span>}
+                                </div>
+
+                                {/* Cakupan Promo */}
+                                <div>
+                                    <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Cakupan Promo</label>
+                                    <select value={data.scope} onChange={e => setData('scope', e.target.value)}
+                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm">
+                                        <option value="global">🌐 Global (Semua Produk)</option>
+                                        <option value="category">🗂️ Kategori Tertentu</option>
+                                        <option value="product">📦 Produk Tertentu</option>
+                                    </select>
+                                    <p className="text-gray-400 text-xs mt-1.5">
+                                        {data.scope === 'global'   && 'Promo berlaku untuk semua produk di cart.'}
+                                        {data.scope === 'category' && 'Diskon dihitung dari subtotal item dalam kategori yang dipilih saja (Opsi B).'}
+                                        {data.scope === 'product'  && 'Diskon dihitung dari subtotal item produk yang dipilih saja (Opsi B).'}
+                                    </p>
+                                </div>
+
+                                {/* Multi-select Kategori */}
+                                {data.scope === 'category' && (
+                                    <div>
+                                        <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Pilih Kategori Target</label>
+                                        <div className="border border-gray-200 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5">
+                                            {categories.length === 0 && <p className="text-gray-400 text-xs">Tidak ada kategori aktif.</p>}
+                                            {categories.map(cat => (
+                                                <label key={cat.category_id} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(data.scope_category_ids || []).includes(cat.category_id)}
+                                                        onChange={() => toggleId('scope_category_ids', cat.category_id)}
+                                                        className="accent-emerald-600 w-4 h-4"
+                                                    />
+                                                    <span className="text-sm text-gray-700">{cat.category_name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {(data.scope_category_ids || []).length === 0 && (
+                                            <p className="text-amber-600 text-xs mt-1">⚠ Pilih minimal 1 kategori.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Multi-select Produk */}
+                                {data.scope === 'product' && (
+                                    <div>
+                                        <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Pilih Produk Target</label>
+                                        <div className="border border-gray-200 rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5">
+                                            {products.length === 0 && <p className="text-gray-400 text-xs">Tidak ada produk aktif.</p>}
+                                            {products.map(prd => (
+                                                <label key={prd.product_id} className="flex items-center gap-2.5 cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1.5 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(data.scope_product_ids || []).includes(prd.product_id)}
+                                                        onChange={() => toggleId('scope_product_ids', prd.product_id)}
+                                                        className="accent-emerald-600 w-4 h-4"
+                                                    />
+                                                    <span className="text-sm text-gray-700">{prd.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {(data.scope_product_ids || []).length === 0 && (
+                                            <p className="text-amber-600 text-xs mt-1">⚠ Pilih minimal 1 produk.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Status */}
                                 <div>
                                     <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Status</label>
                                     <select value={data.active ? '1' : '0'} onChange={e => setData('active', e.target.value === '1')}

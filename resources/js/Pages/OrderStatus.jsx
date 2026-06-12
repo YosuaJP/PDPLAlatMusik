@@ -1,6 +1,7 @@
 import Navbar from '@/Components/Navbar';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
 
 export default function OrderStatus({ order }) {
@@ -74,6 +75,45 @@ export default function OrderStatus({ order }) {
         } finally {
             setIsWebhookLoading(false);
         }
+    };
+
+    const handleReceive = (id) => {
+        Swal.fire({
+            title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Konfirmasi Pesanan Diterima</span>',
+            html: `<div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">Apakah Anda yakin ingin menyelesaikan pesanan ini?</div>
+                   <div style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 12px; margin-top: 10px;">
+                       <span style="color: #ef4444; font-size: 13px; font-weight: 500;">⚠️ Perhatian: Setelah pesanan diterima, barang tidak bisa dikembalikan / direfund.</span>
+                   </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#f3f4f6',
+            confirmButtonText: '<span style="font-weight: 500;">Ya, Saya Terima</span>',
+            cancelButtonText: '<span style="color: #4b5563; font-weight: 500;">Batal</span>',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                confirmButton: 'rounded-xl px-6 py-2.5',
+                cancelButton: 'rounded-xl px-6 py-2.5',
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(route('orders.receive', id), {}, { 
+                    preserveScroll: true,
+                    onSuccess: () => Swal.fire({
+                        title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Berhasil!</span>', 
+                        html: '<span style="font-size: 14px; color: #6b7280;">Pesanan telah diterima. Terima kasih!</span>', 
+                        icon: 'success',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: '<span style="font-weight: 500;">Tutup</span>',
+                        customClass: {
+                            popup: 'rounded-3xl shadow-xl border border-gray-100',
+                            confirmButton: 'rounded-xl px-6 py-2.5'
+                        }
+                    })
+                });
+            }
+        });
     };
 
     const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
@@ -374,16 +414,16 @@ export default function OrderStatus({ order }) {
                             <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2' }}>
                                 <h3 style={{ margin: '0 0 14px 0', fontSize: 14, fontWeight: 800, color: '#1a1a1a' }}>Aksi Pesanan</h3>
                                 
-                                {order.status === 'shipped' && !order.has_refund && (
+                                {order.status === 'shipped' && (!order.refund || refundRejected) && (
                                     <button
-                                        onClick={() => router.post(route('orders.receive', order.order_id), {}, { preserveScroll: true })}
+                                        onClick={() => handleReceive(order.order_id)}
                                         style={{ width: '100%', padding: '12px 0', background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}
                                     >
                                         Pesanan Diterima
                                     </button>
                                 )}
 
-                                {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !order.has_refund && (
+                                {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !order.refund && (
                                     <Link
                                         href={route('orders.index')}
                                         style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px 0', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
@@ -392,7 +432,7 @@ export default function OrderStatus({ order }) {
                                     </Link>
                                 )}
 
-                                {order.has_refund && !refundApproved && (
+                                {order.refund && order.refund.status === 'pending' && (
                                     <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#c2410c', textAlign: 'center' }}>
                                         Refund sedang diproses oleh admin
                                     </div>

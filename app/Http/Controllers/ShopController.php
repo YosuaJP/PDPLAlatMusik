@@ -15,7 +15,9 @@ class ShopController extends Controller
         $catId  = $request->input('category', '');
         $sort   = $request->input('sort', 'latest');
 
-        $query = Product::with('category')->where('active', true);
+        $query = Product::with('category')
+            ->where('active', true)
+            ->whereHas('category', fn($q) => $q->where('active', true));
 
         // Pastikan produk yang habis stok berada di bawah
         $query->orderByRaw('stock_qty > 0 DESC');
@@ -63,19 +65,27 @@ class ShopController extends Controller
             ->where('category_id', $product->category_id)
             ->where('product_id', '!=', $product->product_id)
             ->where('active', true)
+            ->whereHas('category', fn($q) => $q->where('active', true))
             ->inRandomOrder()
             ->limit(4)
             ->get();
 
-        $reviews = $product->reviews()->with('orderItem.order.user')->latest()->get()->map(function ($review) {
-            return [
-                'review_id' => $review->review_id,
-                'rating'    => $review->rating,
-                'comment'   => $review->comment,
-                'created_at'=> $review->created_at?->format('d M Y') ?? '',
-                'user_name' => $review->orderItem?->order?->user?->name ?? 'Pembeli',
-            ];
-        });
+        $reviews = $product->reviews()
+            ->with('orderItem.order.user')
+            ->where('rating', '>=', 4) // HANYA TAMPILKAN BINTANG 4 KE ATAS
+            ->latest()
+            ->get()
+            ->map(function ($review) {
+                return [
+                    'review_id' => $review->review_id,
+                    'rating'    => $review->rating,
+                    'comment'   => $review->comment,
+                    'created_at'=> $review->created_at?->format('d M Y') ?? '',
+                    'user_name' => $review->orderItem?->order?->user?->name ?? 'Pembeli',
+                    'image_urls'=> $review->image_urls,
+                    'video_url' => $review->video_url,
+                ];
+            });
 
         $avgRating = $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 0;
 

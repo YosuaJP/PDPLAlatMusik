@@ -1,4 +1,11 @@
 <?php
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: Laravel 11.x
+ * description: Simulated Payment Gateway logic and Webhook handlers (Mocking Midtrans/Xendit).
+ */
 
 namespace App\Http\Controllers;
 

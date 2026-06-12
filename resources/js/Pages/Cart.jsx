@@ -1,7 +1,14 @@
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: React.js 18.x, Inertia.js
+ * description: Cart page showing added items, manual quantity inputs, and promo coupon application.
+ */
+
 import Navbar from '@/Components/Navbar';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
-
+import { useState, useEffect } from 'react';
 
 export default function Cart({ cartItems: initialItems, recommended, cartId, cart }) {
     const { props } = usePage();
@@ -9,7 +16,12 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
     const cartCount = props.cartCount ?? 0;
 
     const [items, setItems] = useState(initialItems ?? []);
+    const [recItems] = useState(recommended ?? []);
     
+    useEffect(() => {
+        setItems(initialItems ?? []);
+    }, [initialItems]);
+
     // Promo states
     const [promoCodeInput, setPromoCodeInput] = useState('');
     const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -151,7 +163,7 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                 <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1a1a1a', marginBottom: 24 }}>
                     Keranjang Kamu{' '}
                     <span style={{ fontSize: 18, fontWeight: 500, color: '#888' }}>
-                        ({totalItems}/{totalItems} Items)
+                        ({items.length} Items)
                     </span>
                 </h1>
 
@@ -224,7 +236,23 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                                                 style={{ width: 28, height: 28, borderRadius: 6, border: '1.5px solid #ddd', background: isOutOfStock ? '#f5f5f5' : '#fff', cursor: isOutOfStock ? 'not-allowed' : 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: isOutOfStock ? '#ccc' : '#555', fontWeight: 700 }}>
                                                 −
                                             </button>
-                                            <span style={{ minWidth: 24, textAlign: 'center', fontWeight: 700, fontSize: 14, color: isOutOfStock ? '#bbb' : '#1a1a1a' }}>{item.quantity}</span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={item.product?.stock_qty || 1}
+                                                value={item.quantity}
+                                                disabled={isOutOfStock}
+                                                onChange={(e) => {
+                                                    let val = e.target.value === '' ? '' : parseInt(e.target.value);
+                                                    if (val !== '' && !isNaN(val)) {
+                                                        if (val > item.product?.stock_qty) val = item.product.stock_qty;
+                                                        if (val < 1) val = 1;
+                                                        updateQty(item.cart_item_id, val);
+                                                    }
+                                                }}
+                                                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                style={{ minWidth: 32, width: 40, textAlign: 'center', fontWeight: 700, fontSize: 14, color: isOutOfStock ? '#bbb' : '#1a1a1a', border: 'none', background: 'transparent', padding: 0, outline: 'none' }}
+                                            />
                                             <button
                                                 onClick={() => !isOutOfStock && updateQty(item.cart_item_id, item.quantity + 1)}
                                                 disabled={isOutOfStock}
@@ -251,7 +279,7 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                             })}
 
                             {/* Recommendations */}
-                            {(recommended ?? []).length > 0 && (
+                            {recItems.length > 0 && (
                                 <div style={{ marginTop: 32 }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                                         <div style={{ width: 20, height: 20, background: '#3a7d44', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -260,7 +288,7 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                                         <h3 style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a', margin: 0 }}>Mungkin Kamu Suka</h3>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                                        {recommended.map(p => (
+                                        {recItems.map(p => (
                                             <div key={p.product_id} style={{ background: '#fff', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', cursor: 'pointer' }}>
                                                 <div style={{ aspectRatio: '1/1', background: '#f5f5f5', overflow: 'hidden' }}>
                                                     {p.image_url
@@ -276,8 +304,8 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                                                     <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>{fmt(p.price)}</p>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8 }}>
                                                         <span style={{ color: '#f59e0b', fontSize: 11 }}>★</span>
-                                                        <span style={{ fontSize: 11, color: '#555' }}>{(3.8 + (p.product_id % 5) * 0.1).toFixed(1)}</span>
-                                                        <span style={{ fontSize: 10, color: '#999' }}>• {p.product_id * 10 + 14} terjual</span>
+                                                        <span style={{ fontSize: 11, color: '#555' }}>{p.avg_rating > 0 ? p.avg_rating.toFixed(1) : '0.0'}</span>
+                                                        <span style={{ fontSize: 10, color: '#999' }}>• {p.total_sold} terjual</span>
                                                     </div>
                                                     <button onClick={() => addToCart(p.product_id)}
                                                         style={{ width: '100%', padding: '6px 0', background: '#f0faf2', border: '1px solid #c8eacd', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#3a7d44', cursor: 'pointer' }}>
@@ -296,76 +324,7 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                             <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
                                 <h3 style={{ fontWeight: 800, fontSize: 18, color: '#1a1a1a', marginBottom: 20 }}>Ringkasan Order</h3>
 
-                                {/* Total Diskon Highlight - Tampil jika ada promo valid */}
-                                {promoPreview && promoPreview.discount_amount > 0 && (
-                                    <div style={{ background: '#eafaf0', border: '1px solid #bbedcc', borderRadius: 12, padding: '16px', marginBottom: 24 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                            <svg width="20" height="20" fill="none" stroke="#3a7d44" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                                            <span style={{ fontSize: 14, fontWeight: 700, color: '#3a7d44' }}>Total Diskon & Hemat</span>
-                                        </div>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                                            <span style={{ fontSize: 13, fontWeight: 700, color: '#333' }}>Total Hemat</span>
-                                            <span style={{ fontSize: 16, fontWeight: 800, color: '#3a7d44' }}>-{fmt(promoPreview.discount_amount)}</span>
-                                        </div>
-                                    </div>
-                                )}
 
-                                {/* Input Promo / Voucher */}
-                                <div style={{ marginBottom: 24 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.5px' }}>GUNAKAN VOUCHER</span>
-                                        {appliedPromo && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#3a7d44' }}>
-                                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                Voucher Aktif
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {appliedPromo ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f5fff7', border: '1px solid #3a7d44', padding: '12px 16px', borderRadius: 10 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <svg width="20" height="20" fill="none" stroke="#3a7d44" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
-                                                <div>
-                                                    <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#333' }}>{appliedPromo.promo_name}</span>
-                                                    <span style={{ fontSize: 11, color: '#3a7d44', fontWeight: 600 }}>Kode: {appliedPromo.promo_code}</span>
-                                                </div>
-                                            </div>
-                                            <button 
-                                                onClick={handleRemovePromo}
-                                                disabled={isApplyingPromo}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 700, fontSize: 12 }}
-                                            >
-                                                Hapus
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <input 
-                                                type="text" 
-                                                value={promoCodeInput}
-                                                onChange={e => setPromoCodeInput(e.target.value.toUpperCase())}
-                                                placeholder="Masukkan kode promo" 
-                                                style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: '1px solid #ddd', fontSize: 13, textTransform: 'uppercase' }}
-                                                onKeyDown={e => e.key === 'Enter' && handleApplyPromo()}
-                                            />
-                                            <button 
-                                                onClick={handleApplyPromo}
-                                                disabled={!promoCodeInput.trim() || isApplyingPromo}
-                                                style={{ padding: '0 16px', background: promoCodeInput.trim() ? '#3a7d44' : '#e0e0e0', color: promoCodeInput.trim() ? '#fff' : '#999', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: promoCodeInput.trim() && !isApplyingPromo ? 'pointer' : 'not-allowed', transition: 'all 0.2s' }}
-                                            >
-                                                {isApplyingPromo ? '...' : 'Terapkan'}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {promoError && (
-                                        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 500 }}>{promoError}</p>
-                                    )}
-                                    {promoSuccess && !promoError && (
-                                        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#3a7d44', fontWeight: 500 }}>{promoSuccess}</p>
-                                    )}
-                                </div>
 
                                 <div style={{ borderTop: '1px dashed #ddd', marginBottom: 20 }}></div>
 
@@ -375,13 +334,6 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                                         <span style={{ fontSize: 14, color: '#666' }}>Subtotal ({totalItems} items)</span>
                                         <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{fmt(subtotal)}</span>
                                     </div>
-                                    
-                                    {promoPreview && promoPreview.discount_amount > 0 && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: 14, color: '#3a7d44', fontWeight: 600 }}>Diskon</span>
-                                            <span style={{ fontSize: 14, fontWeight: 700, color: '#3a7d44' }}>-{fmt(promoPreview.discount_amount)}</span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div style={{ borderTop: '1px dashed #ddd', marginBottom: 20 }}></div>
@@ -389,9 +341,11 @@ export default function Cart({ cartItems: initialItems, recommended, cartId, car
                                 {/* Total */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                                     <span style={{ fontSize: 16, fontWeight: 700, color: '#666' }}>Total</span>
-                                    <span style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a' }}>
-                                        {fmt(finalTotal)}
-                                    </span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a' }}>
+                                            {fmt(finalTotal)}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Checkout button */}

@@ -17,6 +17,7 @@ class AdminOrderController extends Controller
         $page   = $request->input('page', 1);
 
         $query = Order::with(['user', 'shipment', 'refunds', 'items.product'])
+            ->where('status', '!=', 'pending')
             ->orderByDesc('created_at');
 
         if ($status !== 'all') {
@@ -52,8 +53,7 @@ class AdminOrderController extends Controller
             'orders'  => $mapped,
             'filters' => ['status' => $status],
             'counts'  => [
-                'all'        => Order::count(),
-                'pending'    => Order::where('status', 'pending')->count(),
+                'all'        => Order::where('status', '!=', 'pending')->count(),
                 'processing' => Order::where('status', 'processing')->count(),
                 'shipped'    => Order::where('status', 'shipped')->count(),
                 'delivered'  => Order::where('status', 'delivered')->count(),

@@ -1,6 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, Link, usePage, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
 export default function Dashboard({ stats, recentOrders, lowStockProducts, topProducts, pendingOrdersList }) {
     const { auth } = usePage().props;
@@ -19,8 +20,61 @@ export default function Dashboard({ stats, recentOrders, lowStockProducts, topPr
 
     const handleProcess = (e) => {
         e.preventDefault();
-        post(route('admin.orders.process', selectedOrder.order_id), {
-            onSuccess: () => { setProcessModalOpen(false); reset(); },
+        
+        if (!data.tracking_number) {
+            Swal.fire({
+                title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Error</span>',
+                html: '<span style="font-size: 14px; color: #6b7280;">Nomor resi harus diisi!</span>',
+                icon: 'error',
+                confirmButtonColor: '#3a7d44',
+                confirmButtonText: '<span style="font-weight: 500;">Mengerti</span>',
+                customClass: {
+                    popup: 'rounded-3xl shadow-xl border border-gray-100',
+                    confirmButton: 'rounded-xl px-6 py-2.5'
+                }
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Konfirmasi Pengiriman</span>',
+            html: `<div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">Apakah nomor resi berikut sudah benar?</div>
+                   <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 16px; margin-top: 10px;">
+                       <span style="font-size: 22px; color: #166534; font-weight: 600; letter-spacing: 1px;">${data.tracking_number}</span><br>
+                       <span style="font-size: 12px; color: #15803d; margin-top: 4px; display: block;">Kurir: ${selectedOrder.courier_code}</span>
+                   </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3b82f6',
+            cancelButtonColor: '#f3f4f6',
+            confirmButtonText: '<span style="font-weight: 500;">Ya, Kirim Sekarang!</span>',
+            cancelButtonText: '<span style="color: #4b5563; font-weight: 500;">Periksa Lagi</span>',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                confirmButton: 'rounded-xl px-6 py-2.5',
+                cancelButton: 'rounded-xl px-6 py-2.5',
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                post(route('admin.orders.process', selectedOrder.order_id), {
+                    onSuccess: () => { 
+                        setProcessModalOpen(false); 
+                        reset(); 
+                        Swal.fire({
+                            title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Berhasil!</span>', 
+                            html: '<span style="font-size: 14px; color: #6b7280;">Status pesanan diperbarui menjadi Dikirim.</span>', 
+                            icon: 'success',
+                            confirmButtonColor: '#3b82f6',
+                            confirmButtonText: '<span style="font-weight: 500;">Tutup</span>',
+                            customClass: {
+                                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                                confirmButton: 'rounded-xl px-6 py-2.5'
+                            }
+                        });
+                    },
+                });
+            }
         });
     };
 

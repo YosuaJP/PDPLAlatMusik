@@ -152,6 +152,11 @@ class AdminProductController extends Controller
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
+
+        if ($product->orderItems()->exists()) {
+            return back()->with('error', 'Produk tidak dapat dihapus karena sudah memiliki riwayat pembelian. Silakan nonaktifkan produk ini sebagai gantinya.');
+        }
+
         $product->delete();
 
         return back()->with('success', 'Produk berhasil dihapus.');

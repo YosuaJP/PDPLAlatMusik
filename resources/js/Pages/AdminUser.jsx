@@ -143,10 +143,17 @@ export default function AdminUser({ users, filters }) {
                                         </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                        <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                            Active
-                                        </div>
+                                        {u.status === 'active' ? (
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                Active
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-red-600">
+                                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                Inactive
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="px-5 py-4 text-xs text-gray-500">{u.created_at}</td>
                                     <td className="px-5 py-4 text-right">
@@ -220,6 +227,7 @@ export default function AdminUser({ users, filters }) {
                                         {errors.phone_number && <span className="text-red-500 text-xs mt-1 block">{errors.phone_number}</span>}
                                     </div>
                                 </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Role</label>
@@ -229,10 +237,17 @@ export default function AdminUser({ users, filters }) {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Password {editMode && '(Opsional)'}</label>
-                                        <input type="password" value={data.password} onChange={e => setData('password', e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm" />
-                                        {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password}</span>}
+                                        <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Status Akun</label>
+                                        <select value={data.status} onChange={e => setData('status', e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                        </select>
                                     </div>
+                                </div>
+                                <div>
+                                    <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Password {editMode && '(Opsional)'}</label>
+                                    <input type="password" value={data.password} onChange={e => setData('password', e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm" />
+                                    {errors.password && <span className="text-red-500 text-xs mt-1 block">{errors.password}</span>}
                                 </div>
                             </div>
                             <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">

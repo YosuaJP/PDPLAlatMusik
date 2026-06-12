@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/buy-now', [CartController::class, 'buyNow'])->name('cart.buy-now');
     Route::patch('/cart/update/{cartItemId}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{cartItemId}', [CartController::class, 'remove'])->name('cart.remove');
     Route::post('/cart/apply-promo', [CartController::class, 'applyPromo'])->name('cart.apply-promo');
@@ -70,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::post('/checkout/direct', [CheckoutController::class, 'directBuy'])->name('checkout.direct');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');

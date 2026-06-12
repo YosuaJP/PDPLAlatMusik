@@ -1,3 +1,11 @@
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: React.js 18.x, Inertia.js
+ * description: Interactive mock UI for third-party payment gateway processing.
+ */
+
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 

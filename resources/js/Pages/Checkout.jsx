@@ -1,3 +1,11 @@
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: React.js 18.x, Inertia.js
+ * description: Complex checkout process UI including address selection, promo validation, and order summary.
+ */
+
 import Navbar from '@/Components/Navbar';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
@@ -69,19 +77,42 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
 
     // Ambil kurir aktif
     const activeCourier = couriers.find(c => c.code === selectedCourierCode) || { cost: 0 };
-    const shippingCost = activeCourier.cost;
+    let shippingCost = activeCourier.cost;
 
-    // Ambil promo aktif & hitung diskon
+    // Ambil promo aktif & hitung diskon (Opsi B: berdasarkan applicable subtotal)
     const activePromo = promos.find(p => p.promo_id === Number(selectedPromoId));
     let discount = 0;
+    let applicableSubtotal = subtotal;
+
     if (activePromo) {
+        const scope = activePromo.scope || 'global';
+
+        if (scope === 'category' && activePromo.scope_category_ids?.length > 0) {
+            applicableSubtotal = cartItems
+                .filter(i => activePromo.scope_category_ids.includes(i.category_id))
+                .reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
+        } else if (scope === 'product' && activePromo.scope_product_ids?.length > 0) {
+            applicableSubtotal = cartItems
+                .filter(i => activePromo.scope_product_ids.includes(i.product_id))
+                .reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
+        }
+
         if (activePromo.promo_type === 'percent') {
-            discount = (subtotal * activePromo.discount_value) / 100;
+            discount = (applicableSubtotal * activePromo.discount_value) / 100;
             if (activePromo.max_discount_amount && discount > activePromo.max_discount_amount) {
                 discount = Number(activePromo.max_discount_amount);
             }
+        } else if (activePromo.promo_type === 'free_shipping') {
+            shippingCost = 0;
+            discount = 0;
         } else {
-            discount = Number(activePromo.discount_value);
+            discount = Math.min(Number(activePromo.discount_value), applicableSubtotal);
+        }
+
+        // Batal jika syarat minimum tidak terpenuhi (fallback keamanan)
+        if (applicableSubtotal < activePromo.min_purchase) {
+            discount = 0;
+            shippingCost = activeCourier.cost;
         }
     }
 
@@ -101,6 +132,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
         setErrorMessage('');
 
         router.post(route('checkout.store'), {
+            cart_id: cart.cart_id,
             address_id: selectedAddressId,
             courier_code: selectedCourierCode,
             shipping_cost: shippingCost,
@@ -391,16 +423,21 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                         }}
                                     >
                                         <option value="">Pilih / Masukkan Voucher</option>
-                                        {promos.map(pr => (
-                                            <option key={pr.promo_id} value={pr.promo_id}>
-                                                {pr.promo_code} - Hemat {pr.promo_type === 'percent' ? pr.discount_value + '%' : fmt(pr.discount_value)}
-                                            </option>
-                                        ))}
+                                        {promos.map(pr => {
+                                            const scopeLabel = pr.scope === 'category' ? ' [Kategori]' : pr.scope === 'product' ? ' [Produk]' : '';
+                                            const discountLabel = pr.promo_type === 'percent' ? pr.discount_value + '%' : fmt(pr.discount_value);
+                                            const minLabel = pr.min_purchase > 0 ? ` · Min ${fmt(pr.min_purchase)}` : '';
+                                            return (
+                                                <option key={pr.promo_id} value={pr.promo_id}>
+                                                    {pr.promo_code} — Hemat {discountLabel}{scopeLabel}{minLabel}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                     {activePromo && (
                                         <div style={{ marginTop: 10, background: '#f0faf2', border: '1px solid #c8eacd', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#3a7d44', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <span>🎉</span>
-                                            <span>Berhasil! Anda hemat {fmt(discount)}.</span>
+                                            <span>Berhasil! Anda hemat {activePromo.promo_type === 'free_shipping' ? 'ongkos kirim' : fmt(discount)}.</span>
                                         </div>
                                     )}
                                 </div>
@@ -414,7 +451,13 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666' }}>
                                         <span>Biaya Pengiriman ({selectedCourierCode})</span>
-                                        <span style={{ fontWeight: 600, color: '#333' }}>{fmt(shippingCost)}</span>
+                                        <span style={{ fontWeight: 600, color: '#333' }}>
+                                            {shippingCost === 0 && activePromo?.promo_type === 'free_shipping' ? (
+                                                <span style={{ color: '#3a7d44' }}>Gratis (Promo)</span>
+                                            ) : (
+                                                fmt(shippingCost)
+                                            )}
+                                        </span>
                                     </div>
                                     {discount > 0 && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#3a7d44', fontWeight: 600 }}>
@@ -426,7 +469,16 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                                     <span style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a' }}>Total Tagihan</span>
-                                    <span style={{ fontSize: 22, fontWeight: 850, color: '#1a1a1a' }}>{fmt(finalAmount)}</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        {discount > 0 && (
+                                            <div style={{ fontSize: 13, color: '#999', textDecoration: 'line-through', marginBottom: 2, fontWeight: 600 }}>
+                                                {fmt(subtotal + shippingCost)}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: 22, fontWeight: 850, color: '#1a1a1a' }}>
+                                            {fmt(finalAmount)}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button

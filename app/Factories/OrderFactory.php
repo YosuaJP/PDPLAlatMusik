@@ -1,4 +1,11 @@
 <?php
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: Laravel 11.x
+ * description: Implementation of Factory Pattern for Order instantiation.
+ */
 
 namespace App\Factories;
 

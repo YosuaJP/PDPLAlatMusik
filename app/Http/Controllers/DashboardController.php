@@ -25,6 +25,7 @@ class DashboardController extends Controller
             'categories' => Category::where('active', true)->get(),
             'products'   => Product::with('category')
                                 ->where('active', true)
+                                ->whereHas('category', fn($q) => $q->where('active', true))
                                 ->orderByRaw('stock_qty > 0 DESC')
                                 ->inRandomOrder()
                                 ->limit(8)->get(),
@@ -37,14 +38,15 @@ class DashboardController extends Controller
 
         if ($user->role === 'admin') {
             $stats = [
-                'total_orders'    => Order::count(),
-                'total_revenue'   => Order::whereIn('status', ['processing', 'shipped', 'delivered'])->sum('final_amount'),
+                'total_orders'    => Order::where('status', '!=', 'pending')->count(),
+                'total_revenue'   => Order::whereIn('status', ['processing', 'shipped', 'delivered', 'completed'])->sum('final_amount'),
                 'total_products'  => Product::where('active', true)->count(),
-                'pending_orders'  => Order::whereIn('status', ['pending', 'processing'])->count(),
+                'pending_orders'  => Order::where('status', 'processing')->count(),
                 'total_customers' => User::where('role', 'user')->count(),
             ];
 
             $recentOrders = Order::with('user')
+                ->where('status', '!=', 'pending')
                 ->orderByDesc('created_at')
                 ->limit(7)
                 ->get();
@@ -75,7 +77,7 @@ class DashboardController extends Controller
 
             // Orders needing processing
             $pendingOrdersList = Order::with(['user', 'items.product'])
-                ->whereIn('status', ['pending', 'processing'])
+                ->where('status', 'processing')
                 ->orderByDesc('created_at')
                 ->limit(5)
                 ->get()
@@ -88,9 +90,9 @@ class DashboardController extends Controller
                     'status'      => $o->status,
                     'created_at'  => $o->created_at->diffForHumans(),
                     'items'       => $o->items->map(fn($item) => [
-                        'product_name' => $item->product?->name ?? 'Produk Dihapus',
+                        'product_name' => $item->product_name,
                         'quantity'     => $item->quantity,
-                        'price'        => (float) $item->price,
+                        'price'        => (float) $item->price_each,
                         'image_url'    => $item->product?->image_url,
                     ]),
                 ]);

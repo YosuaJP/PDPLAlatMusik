@@ -1,4 +1,11 @@
 <?php
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: Laravel 11.x
+ * description: Implementation of Service Pattern for checkout transactions.
+ */
 
 namespace App\Services;
 
@@ -71,14 +78,30 @@ class OrderService
                     return $item->price_each * $item->quantity;
                 });
                 
+                $cartItemsArr = $cart->items->map(fn($item) => [
+                    'product_id'  => $item->product_id,
+                    'category_id' => $item->product?->category_id,
+                    'price_each'  => (float) $item->price_each,
+                    'quantity'    => $item->quantity,
+                ])->toArray();
+
                 // Validasi ulang promo di sisi backend untuk keamanan (expired, min purchase, dll)
-                $this->promoService->validatePromo($cart->promo->promo_code, (float)$subtotal);
+                $this->promoService->validatePromo($cart->promo->promo_code, (float)$subtotal, $cartItemsArr);
                 
                 // Gunakan PromoService untuk menghitung diskon
-                $discountAmount = $this->promoService->applyDiscount($cart->promo, $subtotal);
+                $discountAmount = $this->promoService->applyDiscount($cart->promo, $subtotal, $cartItemsArr);
                 
                 // Set data tambahan ke array data agar dibaca oleh OrderFactory
                 $data['calculated_discount_amount'] = $discountAmount;
+
+                if ($cart->promo->promo_type === 'free_shipping') {
+                    $data['shipping_cost'] = 0;
+                }
+
+                // Kurangi kuota promo jika digunakan
+                if (!is_null($cart->promo->quota)) {
+                    $cart->promo->increment('used_quota');
+                }
             }
 
             $order = OrderFactory::create($data, $cart);

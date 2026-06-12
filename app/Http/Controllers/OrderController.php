@@ -18,7 +18,7 @@ class OrderController extends Controller
 
         $orders = Order::where('user_id', $userId)
             ->where('status', '!=', 'pending')
-            ->with(['items.product', 'payment', 'refunds'])
+            ->with(['items.product', 'items.review', 'payment', 'refunds'])
             ->orderByDesc('created_at')
             ->get()
             ->map(function ($order) {
@@ -38,11 +38,15 @@ class OrderController extends Controller
                         'quantity'     => $item->quantity,
                         'price_each'   => (float) $item->price_each,
                         'image_url'    => $item->product->image_url ?? null,
-                        'is_reviewed'  => \App\Models\Review::where('order_item_id', $item->order_item_id)->exists(),
+                        'is_reviewed'  => $item->review !== null,
+                        'review'       => $item->review ? [
+                            'rating'     => $item->review->rating,
+                            'comment'    => $item->review->comment,
+                            'image_urls' => $item->review->image_urls,
+                            'video_url'  => $item->review->video_url,
+                        ] : null,
                     ]),
-                    'all_reviewed'      => $order->items->every(fn($item) =>
-                        \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
-                    ),
+                    'all_reviewed'      => $order->items->every(fn($item) => $item->review !== null),
                 ];
             });
 
@@ -81,10 +85,8 @@ class OrderController extends Controller
         $userId = $user->user_id ?? $user->id;
 
         // Block refund if all items have been reviewed
-        $order = Order::with('items')->findOrFail($id);
-        $allReviewed = $order->items->every(fn($item) =>
-            \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
-        );
+        $order = Order::with(['items', 'items.review'])->findOrFail($id);
+        $allReviewed = $order->items->every(fn($item) => $item->review !== null);
         if ($allReviewed) {
             return back()->withErrors(['message' => 'Refund tidak dapat diajukan karena Anda sudah memberikan ulasan untuk semua barang.']);
         }
@@ -132,6 +134,7 @@ class OrderController extends Controller
         // Ambil data order lengkap dengan relasi
         $order = Order::with([
             'items.product',
+            'items.review',
             'payment',
             'shipment',
             'refunds',
@@ -167,7 +170,13 @@ class OrderController extends Controller
                     'quantity'     => $item->quantity,
                     'price_each'   => (float) $item->price_each,
                     'image_url'    => $item->product->image_url ?? null,
-                    'is_reviewed'  => \App\Models\Review::where('order_item_id', $item->order_item_id)->exists(),
+                    'is_reviewed'  => $item->review !== null,
+                    'review'       => $item->review ? [
+                        'rating'     => $item->review->rating,
+                        'comment'    => $item->review->comment,
+                        'image_urls' => $item->review->image_urls,
+                        'video_url'  => $item->review->video_url,
+                    ] : null,
                 ];
             }),
             'payment'          => $order->payment ? [
@@ -203,9 +212,7 @@ class OrderController extends Controller
                 'created_at'       => $order->refunds->first()->created_at?->format('d M Y, H:i'),
                 'updated_at'       => $order->refunds->first()->updated_at?->format('d M Y, H:i'),
             ] : null,
-            'all_reviewed'     => $order->items->every(fn($item) =>
-                \App\Models\Review::where('order_item_id', $item->order_item_id)->exists()
-            ),
+            'all_reviewed'     => $order->items->every(fn($item) => $item->review !== null),
         ];
 
         return Inertia::render('OrderStatus', [
