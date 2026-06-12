@@ -38,7 +38,7 @@ const navItems = [
     },
     {
         label: 'Pencatatan Stok',
-        href: '/stock',
+        href: '/admin/stocks',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -48,7 +48,7 @@ const navItems = [
     },
     {
         label: 'Promo & Diskon',
-        href: '/promos',
+        href: '/admin/promos',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -58,7 +58,7 @@ const navItems = [
     },
     {
         label: 'Performa Produk',
-        href: '/performance',
+        href: '/admin/product-performance',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -68,7 +68,7 @@ const navItems = [
     },
     {
         label: 'Laporan',
-        href: '/reports',
+        href: '/admin/reports',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -77,8 +77,18 @@ const navItems = [
         ),
     },
     {
+        label: 'Ulasan',
+        href: '/admin/reviews',
+        icon: (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+        ),
+    },
+    {
         label: 'Pesanan',
-        href: '/orders',
+        href: '/admin/orders',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -90,7 +100,7 @@ const navItems = [
     },
     {
         label: 'Refund',
-        href: '/refunds',
+        href: '/admin/refunds',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -100,7 +110,7 @@ const navItems = [
     },
     {
         label: 'Daftar User',
-        href: '/users',
+        href: '/admin/users',
         icon: (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -142,7 +152,7 @@ function SidebarItem({ item, currentUrl }) {
 }
 
 export default function AdminLayout({ children, pageTitle }) {
-    const { auth } = usePage().props;
+    const { auth, flash } = usePage().props;
     const user = auth?.user;
     const currentUrl = window.location.pathname;
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -168,7 +178,7 @@ export default function AdminLayout({ children, pageTitle }) {
                         </svg>
                     </div>
                     <div>
-                        <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0, lineHeight: 1 }}>Melodi POS</p>
+                        <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0, lineHeight: 1 }}>NadaKito</p>
                         <p style={{ fontSize: 11, color: '#6b7280', margin: '3px 0 0', lineHeight: 1 }}>Admin Panel</p>
                     </div>
                 </div>
@@ -216,7 +226,7 @@ export default function AdminLayout({ children, pageTitle }) {
             )}
 
             {/* Sidebar Desktop */}
-            <aside style={{
+            <aside className="print:hidden" style={{
                 width: 220,
                 background: '#fff',
                 borderRight: '1px solid #e5e7eb',
@@ -229,7 +239,7 @@ export default function AdminLayout({ children, pageTitle }) {
             </aside>
 
             {/* Sidebar Mobile Drawer */}
-            <aside style={{
+            <aside className="print:hidden" style={{
                 position: 'fixed', top: 0, left: 0, height: '100%',
                 width: 220, background: '#fff',
                 borderRight: '1px solid #e5e7eb',
@@ -244,7 +254,7 @@ export default function AdminLayout({ children, pageTitle }) {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 
                 {/* Top Header */}
-                <header style={{
+                <header className="print:hidden" style={{
                     background: '#fff',
                     borderBottom: '1px solid #e5e7eb',
                     padding: '0 24px',
@@ -297,6 +307,18 @@ export default function AdminLayout({ children, pageTitle }) {
 
                 {/* Page content */}
                 <main style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+                    {flash?.success && (
+                        <div className="mb-4 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-3">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            <span className="text-sm font-semibold">{flash.success}</span>
+                        </div>
+                    )}
+                    {flash?.error && (
+                        <div className="mb-4 p-4 rounded-xl bg-red-50 text-red-700 border border-red-100 flex items-center gap-3">
+                            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            <span className="text-sm font-semibold">{flash.error}</span>
+                        </div>
+                    )}
                     {children}
                 </main>
             </div>

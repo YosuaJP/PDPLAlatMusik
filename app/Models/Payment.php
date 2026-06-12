@@ -35,6 +35,7 @@ class Payment extends Model
             'gateway_fee' => 'decimal:2',
             'expired_at'  => 'datetime',
             'paid_at'     => 'datetime',
+            'created_at'  => 'datetime',
         ];
     }
 

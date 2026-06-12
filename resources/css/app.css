@@ -25,3 +25,15 @@
         background: #475569; /* slate-600 */
     }
 }
+
+@media print {
+    @page {
+        margin: 0; /* Menghilangkan header/footer browser bawaan (URL, page title, dsb) */
+    }
+    body {
+        margin: 1.5cm; /* Memberikan margin untuk konten print */
+    }
+    .print\:hidden {
+        display: none !important;
+    }
+}

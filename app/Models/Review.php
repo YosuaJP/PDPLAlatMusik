@@ -14,7 +14,16 @@ class Review extends Model
         'product_id',
         'rating',
         'comment',
+        'image_urls',
+        'video_url',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'image_urls' => 'array',
+        ];
+    }
 
     public function orderItem(): BelongsTo
     {

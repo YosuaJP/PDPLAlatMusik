@@ -34,6 +34,10 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
             'cartCount' => function () use ($request) {
                 $user = $request->user();
                 if (!$user) {
@@ -50,7 +54,7 @@ class HandleInertiaRequests extends Middleware
                     return 0;
                 }
                 
-                return (int) $cart->items()->sum('quantity');
+                return (int) $cart->items()->count();
             },
         ];
     }

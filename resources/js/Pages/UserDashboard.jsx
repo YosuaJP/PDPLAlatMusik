@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
 
@@ -26,7 +26,7 @@ function Navbar({ auth, cartCount, searchQuery, onSearch }) {
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                             <MusicIcon color="#fff" />
                         </div>
-                        <span className="font-bold text-xl text-gray-800 tracking-tight">Melodi POS</span>
+                        <span className="font-bold text-xl text-gray-800 tracking-tight">NadaKito</span>
                     </Link>
 
                     {/* Search */}
@@ -96,6 +96,14 @@ function Navbar({ auth, cartCount, searchQuery, onSearch }) {
                                             Keranjang Saya
                                         </Link>
 
+                                        <Link href={route('orders.index')} onClick={() => setOpen(false)}
+                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors no-underline">
+                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Pesanan Saya
+                                        </Link>
+
                                         <div className="border-t border-gray-100 mt-1 pt-1">
                                             <button
                                                 onClick={() => { setOpen(false); router.post(route('logout')); }}
@@ -117,45 +125,158 @@ function Navbar({ auth, cartCount, searchQuery, onSearch }) {
     );
 }
 
+/* ── Pending Order Countdown ── */
+function PendingOrderCountdown({ createdAtRaw, externalId, orderId, amount }) {
+    const EXPIRE_MINUTES = 15;
+
+    const calcRemaining = () => {
+        if (!createdAtRaw) return 0;
+        const created = new Date(createdAtRaw).getTime();
+        if (isNaN(created)) return 0;
+        const expireAt = created + EXPIRE_MINUTES * 60 * 1000;
+        const diff = expireAt - Date.now();
+        return Math.max(0, Math.floor(diff / 1000));
+    };
+
+    const [secs, setSecs] = useState(calcRemaining);
+
+    useEffect(() => {
+        setSecs(calcRemaining());
+        const interval = setInterval(() => setSecs(calcRemaining()), 1000);
+        return () => clearInterval(interval);
+    }, [createdAtRaw]);
+
+    const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    const ss = String(secs % 60).padStart(2, '0');
+    const isExpiring = secs > 0 && secs <= 120;
+    const isExpired = secs === 0;
+
+    // Kalau sudah expired, hilang dari daftar
+    if (isExpired) return null;
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '16px 20px',
+            background: '#fff',
+            border: `1.5px solid ${isExpired ? '#fecaca' : isExpiring ? '#fed7aa' : '#fde68a'}`,
+            borderRadius: 16,
+            borderLeft: `5px solid ${isExpired ? '#ef4444' : isExpiring ? '#f97316' : '#f59e0b'}`,
+            transition: 'all 0.3s ease',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                {/* Clock icon */}
+                <div style={{
+                    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                    background: isExpired ? '#fee2e2' : '#fef3c7',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18,
+                }}>
+                    {isExpired ? '❌' : '🕐'}
+                </div>
+                <div>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>
+                        Pesanan #{orderId}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                        {isExpired ? (
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#ef4444' }}>• Expired</span>
+                        ) : (
+                            <span style={{
+                                fontSize: 12, fontWeight: 700,
+                                color: isExpiring ? '#ea580c' : '#d97706',
+                                animation: isExpiring ? 'pulse 1s ease infinite' : 'none',
+                            }}>
+                                • Expiring in {mm}:{ss}
+                            </span>
+                        )}
+                        <span style={{ fontSize: 12, color: '#6b7280' }}>amount: {fmt(amount)}</span>
+                    </div>
+                </div>
+            </div>
+
+            {externalId ? (
+                <Link
+                    href={route('payment.checkout', externalId)}
+                    style={{
+                        flexShrink: 0,
+                        padding: '9px 18px',
+                        background: '#1a1a1a',
+                        color: '#fff',
+                        borderRadius: 10,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    resume payment →
+                </Link>
+            ) : (
+                <Link
+                    href={route('orders.show', orderId)}
+                    style={{
+                        flexShrink: 0,
+                        padding: '9px 18px',
+                        background: '#6b7280',
+                        color: '#fff',
+                        borderRadius: 10,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                    }}
+                >
+                    lihat detail →
+                </Link>
+            )}
+        </div>
+    );
+}
+
+
 /* ── Product Card ── */
 function ProductCard({ product, onAdd, justAdded }) {
-    const rating = (4.0 + (product.product_id % 9) * 0.1).toFixed(1);
-    const sold   = product.product_id * 12 + 14;
+    const isSoldOut = product.stock_qty <= 0;
+    
     return (
-        <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-200 transition-all group flex flex-col">
-            {/* Clickable image area → product detail */}
-            <Link href={route('product.detail', product.product_id)} className="no-underline">
-                <div className="aspect-square bg-gray-50 overflow-hidden relative cursor-pointer">
-                    {product.image_url
-                        ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        : <div className="w-full h-full flex items-center justify-center"><MusicIcon color="#d1d5db" /></div>
-                    }
-                    {justAdded && (
-                        <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-                            <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">✓ Ditambahkan!</span>
-                        </div>
-                    )}
+        <div className={`bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 flex flex-col relative ${isSoldOut ? 'opacity-70 pointer-events-none grayscale-[0.8]' : 'hover:shadow-lg hover:border-emerald-200 transition-all group'}`}>
+            {isSoldOut && (
+                <div className="absolute top-4 right-4 z-30 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                    Habis
                 </div>
-            </Link>
-            <div className="flex-1 flex flex-col p-4">
+            )}
+            
+            {/* Link overlay covering the entire card */}
+            <Link href={isSoldOut ? '#' : route('product.detail', product.product_id)} className="absolute inset-0 z-10" />
+
+            <div className="aspect-square bg-gray-50 overflow-hidden relative">
+                {product.image_url
+                    ? <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover ${!isSoldOut && 'group-hover:scale-105 transition-transform duration-300'}`} />
+                    : <div className="w-full h-full flex items-center justify-center"><MusicIcon color="#d1d5db" /></div>
+                }
+                {justAdded && !isSoldOut && (
+                    <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center z-20">
+                        <span className="bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow">✓ Ditambahkan!</span>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1 flex flex-col p-4 relative z-0">
                 <p className="text-[11px] text-emerald-600 font-semibold mb-1">{product.category?.category_name ?? 'Umum'}</p>
-                {/* Clickable name → product detail */}
-                <Link href={route('product.detail', product.product_id)} className="no-underline">
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight mb-2 line-clamp-2 flex-1 hover:text-emerald-700 transition-colors cursor-pointer">{product.name}</h3>
-                </Link>
+                <h3 className="text-sm font-bold text-gray-900 leading-tight mb-2 line-clamp-2 flex-1 group-hover:text-emerald-700 transition-colors">{product.name}</h3>
                 <p className="text-base font-extrabold text-gray-900 mb-2">{fmt(product.price)}</p>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <svg className="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-3.5 h-3.5 text-amber-400 fill-amber-400" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
-                        <span className="font-semibold text-gray-700">{rating}</span>
+                        <span className="font-semibold text-gray-700">{product.avg_rating > 0 ? product.avg_rating.toFixed(1) : '0.0'}</span>
                         <span>•</span>
-                        <span>{sold} Terjual</span>
+                        <span>{product.total_sold} Terjual</span>
                     </div>
-                    <button onClick={() => onAdd(product.product_id)}
-                        className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-colors shadow-sm"
-                        title="Tambah ke keranjang">
+                    <button onClick={(e) => { e.preventDefault(); onAdd(product.product_id); }}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors shadow-sm relative z-20 ${isSoldOut ? 'bg-gray-100 text-gray-400' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white'}`}
+                        title={isSoldOut ? 'Stok Habis' : 'Tambah ke keranjang'}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                         </svg>
@@ -178,6 +299,15 @@ export default function UserDashboard({ auth, products, categories }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [addedIds, setAddedIds]       = useState([]);
 
+    // Otomatis refresh data pesanan jika user menggunakan tombol back browser
+    useEffect(() => {
+        const handlePopState = () => {
+            router.reload({ only: ['orders', 'cartCount'] });
+        };
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
     const filtered = allProducts.filter(p => {
         const q = searchQuery.toLowerCase();
         return p.name.toLowerCase().includes(q) || (p.category?.category_name ?? '').toLowerCase().includes(q);
@@ -195,7 +325,7 @@ export default function UserDashboard({ auth, products, categories }) {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-            <Head title="Beranda — Melodi POS" />
+            <Head title="" />
             <Navbar auth={sharedAuth} cartCount={cartCount} searchQuery={searchQuery} onSearch={setSearchQuery} />
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -230,12 +360,12 @@ export default function UserDashboard({ auth, products, categories }) {
                     <div className="hidden lg:block absolute right-12 top-1/2 -translate-y-1/2">
                         <div className="relative w-80 h-72">
                             <div className="absolute right-0 top-0 w-52 h-60 bg-gray-200 rounded-3xl transform rotate-6 shadow-xl border-4 border-white overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Gitar" className="w-full h-full object-cover" />
+                                <img src="/images/products/Fender Stratocaster Standard Electric Guitar.webp" alt="Gitar" className="w-full h-full object-cover" />
                             </div>
                             <div className="absolute right-10 top-6 w-52 h-60 bg-gray-200 rounded-3xl transform -rotate-3 shadow-2xl border-4 border-white overflow-hidden">
-                                <img src="https://images.unsplash.com/photo-1552422535-c45813c61732?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Piano" className="w-full h-full object-cover" />
+                                <img src="/images/products/Yamaha P-45 Digital Piano.jpg" alt="Piano" className="w-full h-full object-cover" />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                                    <p className="text-white font-bold text-base">Grand Piano</p>
+                                    <p className="text-white font-bold text-base">Digital Piano</p>
                                     <p className="text-gray-300 text-xs">Premium Quality</p>
                                 </div>
                             </div>
@@ -243,31 +373,90 @@ export default function UserDashboard({ auth, products, categories }) {
                     </div>
                 </div>
 
-                {/* Pesanan Saya (My Orders) */}
-                {sharedAuth?.user && props.orders && props.orders.length > 0 && (
+                {/* Pesanan Menunggu Pembayaran — dengan countdown */}
+                {sharedAuth?.user && props.orders && props.orders.some(o => {
+                    if (o.status !== 'pending') return false;
+                    const diff = new Date().getTime() - new Date(o.created_at_raw || o.created_at).getTime();
+                    return diff < 15 * 60 * 1000;
+                }) && (
+                    <div className="mb-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-base font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                <span className="relative flex h-2.5 w-2.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                                </span>
+                                Waiting for Payment
+                            </h2>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {props.orders
+                                .filter(o => {
+                                    if (o.status !== 'pending') return false;
+                                    const diff = new Date().getTime() - new Date(o.created_at_raw || o.created_at).getTime();
+                                    return diff < 15 * 60 * 1000;
+                                })
+                                .map(ord => (
+                                    <PendingOrderCountdown
+                                        key={ord.order_id}
+                                        createdAtRaw={ord.created_at_raw}
+                                        externalId={ord.payment_external_id}
+                                        orderId={ord.order_id}
+                                        amount={ord.final_amount}
+                                    />
+                                ))
+                            }
+                        </div>
+                    </div>
+                )}
+
+                {/* Semua Pesanan — hanya tampil non-pending */}
+                {sharedAuth?.user && props.orders && props.orders.filter(o => o.status !== 'pending').length > 0 && (
                     <div className="mb-12 bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
                                 📦 Pesanan Saya
                             </h2>
-                            <span className="text-xs text-gray-500 font-medium">Menampilkan {props.orders.length} pesanan terakhir</span>
+                            <span className="text-xs text-gray-500 font-medium">Riwayat pesanan terakhir</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {props.orders.map(ord => (
-                                <Link key={ord.order_id} href={route('orders.show', ord.order_id)} className="flex items-center justify-between p-4 border border-gray-100 rounded-2xl hover:border-emerald-200 hover:bg-emerald-50/10 transition-all no-underline">
+                            {props.orders
+                                .filter(ord => ord.status !== 'pending')
+                                .map(ord => (
+                                <Link key={ord.order_id} href={route('orders.show', ord.order_id)}
+                                    className={`flex items-center justify-between p-4 rounded-2xl transition-all no-underline border ${
+                                        ord.status === 'processing'
+                                            ? 'border-blue-200 bg-blue-50/40 hover:bg-blue-50'
+                                            : 'border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/10'
+                                    }`}>
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-gray-800 text-sm">Pesanan #{ord.order_id}</span>
+                                            <span className="font-bold text-gray-800 text-sm truncate max-w-[180px]" title={ord.first_item_name}>
+                                                {ord.first_item_name}{ord.items_count > 1 ? ` +${ord.items_count - 1} lainnya` : ''}
+                                            </span>
                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                                ord.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                                                ord.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                                                ord.status === 'delivered' ? 'bg-emerald-100 text-emerald-700' :
-                                                ord.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                                                ord.refund_status === 'approved' ? 'bg-teal-100 text-teal-700' :
+                                                ord.refund_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                ord.refund_status === 'pending'  ? 'bg-orange-100 text-orange-700' :
+                                                ord.status === 'processing'      ? 'bg-blue-100 text-blue-700' :
+                                                ord.status === 'shipped'         ? 'bg-purple-100 text-purple-700' :
+                                                ord.status === 'delivered' || ord.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                ord.status === 'cancelled'       ? 'bg-red-100 text-red-700' :
+                                                'bg-gray-100 text-gray-700'
                                             }`}>
-                                                {ord.status.toUpperCase()}
+                                                {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                 ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                 ord.refund_status === 'pending'  ? 'Refund Diproses' :
+                                                 ord.status === 'processing' ? 'Diproses' :
+                                                 ord.status === 'shipped'    ? 'Dikirim' :
+                                                 ord.status === 'delivered'  ? 'Diterima' :
+                                                 ord.status === 'completed'  ? 'Selesai' :
+                                                 ord.status === 'cancelled'  ? 'Dibatalkan' :
+                                                 ord.status}
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 m-0">{ord.created_at} • {ord.items_count} Barang</p>
+
                                     </div>
                                     <div className="text-right">
                                         <p className="font-extrabold text-sm text-gray-900 mb-1">{fmt(ord.final_amount)}</p>

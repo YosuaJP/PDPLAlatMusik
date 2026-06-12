@@ -1,3 +1,11 @@
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: React.js 18.x, Inertia.js
+ * description: Interactive mock UI for third-party payment gateway processing.
+ */
+
 import { Head, router } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
@@ -18,7 +26,9 @@ export default function SimulatePayment({ payment }) {
     const [isSuccessPayment, setIsSuccessPayment] = useState(false);
 
     // Xendit specific states
-    const [xenditStep, setXenditStep] = useState(2); // directly to payment panel
+    const [xenditStep, setXenditStep] = useState(1); // Step 1: pilih metode, Step 2: detail, Step 3: loading
+    const [xenditCategory, setXenditCategory] = useState(null); // 'bank', 'ewallet', 'qris', 'minimarket'
+    const [xenditMethod, setXenditMethod] = useState(null); // e.g. 'bca', 'gopay', etc.
 
     const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
     const orderIdPadded = String(payment.order.order_id).padStart(8, '0');
@@ -298,136 +308,480 @@ export default function SimulatePayment({ payment }) {
         runBackendSubmission('failed');
     };
 
-    // Xendit Simulator Fallback View
+    // Xendit payment methods data config
+    const xenditMethods = {
+        bank: {
+            label: '🏦 Transfer Bank (Virtual Account)',
+            color: '#1e40af',
+            methods: [
+                { id: 'bca', name: 'BCA', label: 'BCA Virtual Account', color: '#0060af', vaPrefix: '98123', icon: '🏦' },
+                { id: 'mandiri', name: 'Mandiri', label: 'Mandiri Virtual Account', color: '#1c3f94', vaPrefix: '88012', icon: '🏛️' },
+                { id: 'bni', name: 'BNI', label: 'BNI Virtual Account', color: '#f15a23', vaPrefix: '8578', icon: '🏦' },
+                { id: 'bri', name: 'BRI', label: 'BRI Virtual Account', color: '#00529c', vaPrefix: '88788', icon: '🏧' },
+                { id: 'permata', name: 'Permata', label: 'Permata Virtual Account', color: '#8cc63f', vaPrefix: '8778', icon: '💳' },
+                { id: 'cimb', name: 'CIMB', label: 'CIMB Virtual Account', color: '#e60000', vaPrefix: '99901', icon: '🏦' },
+            ]
+        },
+        ewallet: {
+            label: '📱 E-Wallet',
+            color: '#7c3aed',
+            methods: [
+                { id: 'gopay', name: 'GoPay', label: 'GoPay', color: '#00AA13', refPrefix: 'GPAY', icon: '🟢' },
+                { id: 'ovo', name: 'OVO', label: 'OVO', color: '#4c3494', refPrefix: 'OVO', icon: '💜' },
+                { id: 'dana', name: 'DANA', label: 'DANA', color: '#118EEA', refPrefix: 'DANA', icon: '🔵' },
+                { id: 'shopeepay', name: 'ShopeePay', label: 'ShopeePay', color: '#ee4d2d', refPrefix: 'SPAY', icon: '🧡' },
+            ]
+        },
+        qris: {
+            label: '🔳 QRIS (Scan & Pay)',
+            color: '#0f766e',
+            methods: [
+                { id: 'qris', name: 'QRIS', label: 'Semua Bank & E-Wallet', color: '#334155', refPrefix: 'QRIS', icon: '🔳' },
+            ]
+        },
+        minimarket: {
+            label: '🏪 Minimarket / Gerai',
+            color: '#b91c1c',
+            methods: [
+                { id: 'alfamart', name: 'Alfamart', label: 'Alfamart / Alfamidi', color: '#d9251c', codePrefix: '11103', icon: '🏪' },
+                { id: 'indomaret', name: 'Indomaret', label: 'Indomaret / Indogrosir', color: '#0055a5', codePrefix: '22203', icon: '🏬' },
+            ]
+        }
+    };
+
+    const getXenditMethodDetail = (method) => {
+        if (!method) return null;
+        const m = Object.values(xenditMethods).flatMap(c => c.methods).find(m => m.id === method);
+        if (!m) return null;
+        let paymentCode = '';
+        let paymentLabel = '';
+        let paymentType = '';
+        if (['bca','mandiri','bni','bri','permata','cimb'].includes(method)) {
+            paymentCode = `${m.vaPrefix}${orderIdPadded}`;
+            paymentLabel = 'Nomor Virtual Account';
+            paymentType = 'va';
+        } else if (['gopay','ovo','dana','shopeepay'].includes(method)) {
+            paymentCode = `${m.refPrefix}-${orderIdPadded}`;
+            paymentLabel = 'Kode Referensi / Deep Link';
+            paymentType = 'ewallet';
+        } else if (method === 'qris') {
+            paymentCode = `QRIS-${orderIdPadded}`;
+            paymentLabel = 'ID Transaksi QRIS';
+            paymentType = 'qris';
+        } else {
+            paymentCode = `${m.codePrefix}${orderIdPadded}`;
+            paymentLabel = 'Kode Pembayaran';
+            paymentType = 'minimarket';
+        }
+        return { ...m, paymentCode, paymentLabel, paymentType };
+    };
+
+    // Xendit Simulator — 3-Step Flow
     if (!isMidtrans) {
+        const methodDetail = getXenditMethodDetail(xenditMethod);
+
         return (
             <div style={{ 
                 minHeight: '100vh', 
-                background: 'radial-gradient(circle at top right, #0f172a, #020617)', 
+                background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)', 
                 color: '#f8fafc', 
                 fontFamily: "'Outfit', 'Inter', 'Segoe UI', sans-serif", 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                padding: 20 
+                display: 'flex',
+                flexDirection: 'column',
             }}>
-                <Head title="Xendit Invoice Simulator — NadaKito" />
+                <Head title="" />
                 
-                {/* Embedded global styles */}
                 <style dangerouslySetInnerHTML={{__html: `
                     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
-                    .premium-card {
-                        backdrop-filter: blur(16px);
-                        background: rgba(30, 41, 59, 0.7);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    @keyframes spinCircle {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
                     }
-                    .hover-scale {
-                        transition: all 0.2s ease-in-out;
+                    @keyframes fadeInUp {
+                        from { opacity: 0; transform: translateY(16px); }
+                        to { opacity: 1; transform: translateY(0); }
                     }
-                    .hover-scale:hover {
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                    .xnd-method-card {
+                        background: rgba(30, 41, 59, 0.6);
+                        border: 1.5px solid rgba(255,255,255,0.07);
+                        border-radius: 14px;
+                        padding: 14px 16px;
+                        cursor: pointer;
+                        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        animation: fadeInUp 0.3s ease forwards;
+                        backdrop-filter: blur(8px);
+                    }
+                    .xnd-method-card:hover {
+                        border-color: rgba(99, 179, 237, 0.5);
+                        background: rgba(99, 179, 237, 0.08);
                         transform: translateY(-2px);
-                        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
-                        border-color: rgba(59, 130, 246, 0.4) !important;
+                        box-shadow: 0 8px 24px rgba(99,179,237,0.15);
+                    }
+                    .xnd-cat-btn {
+                        width: 100%;
+                        padding: 16px 20px;
+                        border-radius: 14px;
+                        border: 1.5px solid rgba(255,255,255,0.08);
+                        background: rgba(30, 41, 59, 0.5);
+                        color: #e2e8f0;
+                        cursor: pointer;
+                        font-family: inherit;
+                        font-size: 14px;
+                        font-weight: 700;
+                        text-align: left;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        backdrop-filter: blur(8px);
+                    }
+                    .xnd-cat-btn:hover {
+                        border-color: rgba(99,179,237,0.4);
+                        background: rgba(99,179,237,0.08);
+                        transform: translateX(4px);
+                    }
+                    .xnd-cat-btn.active {
+                        border-color: rgba(99,179,237,0.6);
+                        background: rgba(99,179,237,0.12);
+                    }
+                    .copy-btn {
+                        background: rgba(59,130,246,0.2);
+                        border: 1px solid rgba(59,130,246,0.3);
+                        color: #93c5fd;
+                        border-radius: 8px;
+                        padding: 6px 14px;
+                        font-size: 12px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-family: inherit;
+                        transition: all 0.15s;
+                    }
+                    .copy-btn:hover {
+                        background: rgba(59,130,246,0.35);
+                    }
+                    .pay-btn-green {
+                        width: 100%;
+                        padding: 18px;
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        color: #fff;
+                        border: none;
+                        border-radius: 14px;
+                        font-size: 15px;
+                        font-weight: 800;
+                        cursor: pointer;
+                        font-family: inherit;
+                        letter-spacing: 0.3px;
+                        box-shadow: 0 8px 24px rgba(16,185,129,0.35);
+                        transition: all 0.2s ease;
+                    }
+                    .pay-btn-green:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 12px 32px rgba(16,185,129,0.45);
+                    }
+                    .pay-btn-red {
+                        width: 100%;
+                        padding: 14px;
+                        background: rgba(239,68,68,0.08);
+                        color: #f87171;
+                        border: 1.5px solid rgba(239,68,68,0.2);
+                        border-radius: 12px;
+                        font-size: 13px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-family: inherit;
+                        transition: all 0.2s ease;
+                    }
+                    .pay-btn-red:hover {
+                        background: rgba(239,68,68,0.15);
+                        border-color: rgba(239,68,68,0.4);
                     }
                 `}} />
 
-                <div className="premium-card" style={{ width: '100%', maxWidth: 500, borderRadius: 24, overflow: 'hidden' }}>
-                    {xenditStep !== 3 ? (
-                        <>
-                            {/* Header */}
-                            <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e3a8a)', padding: '28px 30px', textAlign: 'center', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(59, 130, 246, 0.2)', padding: '6px 14px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 12, border: '1px solid rgba(59,130,246,0.3)' }}>
-                                    🛡️ Xendit Sandbox Mode
-                                </div>
-                                <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>Xendit Invoice Simulator</h1>
-                                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94a3b8' }}>Simulasi Pembayaran Terintegrasi — NadaKito</p>
-                            </div>
+                {/* Top Header Bar */}
+                <div style={{ background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 32px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#3b82f6,#6366f1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>💙</div>
+                        <div>
+                            <span style={{ fontWeight: 900, fontSize: 15, color: '#fff', letterSpacing: '-0.3px' }}>Xendit</span>
+                            <span style={{ marginLeft: 8, fontSize: 10, background: 'rgba(59,130,246,0.2)', color: '#93c5fd', padding: '2px 8px', borderRadius: 10, fontWeight: 700, border: '1px solid rgba(59,130,246,0.3)', letterSpacing: '0.5px' }}>SANDBOX</span>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>🔒 Transaksi Aman & Terenkripsi</span>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981' }}>{payment.order.user_name}</div>
+                    </div>
+                </div>
 
-                            {/* Body */}
-                            <div style={{ padding: '30px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16, marginBottom: 20 }}>
-                                    <div>
-                                        <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.5px' }}>KODE INVOICE</p>
-                                        <p style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 800, color: '#f8fafc' }}>{payment.external_id}</p>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600, letterSpacing: '0.5px' }}>CUSTOMER</p>
-                                        <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>{payment.order.user_name}</p>
-                                    </div>
-                                </div>
+                {/* Main Content */}
+                <div style={{ flex: 1, display: 'flex', maxWidth: 1100, width: '100%', margin: '0 auto', padding: '32px 24px', gap: 28, alignItems: 'flex-start' }}>
+                    
+                    {/* LEFT: Main Payment Panel */}
+                    <div style={{ flex: 1 }}>
 
-                                <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 16, padding: '18px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-                                    <div>
-                                        <span style={{ fontSize: 11, color: '#60a5fa', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL TAGIHAN LUNAS</span>
-                                        <h2 style={{ margin: '2px 0 0', fontSize: 26, fontWeight: 900, color: '#93c5fd' }}>{fmt(payment.amount)}</h2>
+                        {/* Step Indicator */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+                            {[
+                                { n: 1, label: 'Pilih Metode' },
+                                { n: 2, label: 'Detail Bayar' },
+                                { n: 3, label: 'Konfirmasi' },
+                            ].map((s, i) => (
+                                <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{
+                                            width: 28, height: 28, borderRadius: '50%',
+                                            background: xenditStep >= s.n ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'rgba(100,116,139,0.3)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            fontSize: 12, fontWeight: 800, color: '#fff',
+                                            boxShadow: xenditStep >= s.n ? '0 4px 12px rgba(59,130,246,0.4)' : 'none',
+                                            transition: 'all 0.3s ease'
+                                        }}>{xenditStep > s.n ? '✓' : s.n}</div>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: xenditStep >= s.n ? '#e2e8f0' : '#475569' }}>{s.label}</span>
                                     </div>
-                                    <span style={{ fontSize: 10, background: '#1e293b', color: '#94a3b8', padding: '6px 12px', borderRadius: 20, fontWeight: 800, border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        PENDING
-                                    </span>
+                                    {i < 2 && <div style={{ width: 32, height: 1, background: xenditStep > s.n ? '#3b82f6' : 'rgba(100,116,139,0.3)', transition: 'all 0.3s' }} />}
                                 </div>
+                            ))}
+                        </div>
+
+                        {/* === STEP 1: PILIH METODE PEMBAYARAN === */}
+                        {xenditStep === 1 && (
+                            <div style={{ animation: 'fadeInUp 0.35s ease forwards' }}>
+                                <h2 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>Pilih Metode Pembayaran</h2>
+                                <p style={{ margin: '0 0 28px 0', fontSize: 13, color: '#64748b' }}>Tagihan akan diproses oleh Xendit Payment Gateway (Sandbox Mode)</p>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    <button
-                                        onClick={() => runBackendSubmission('paid')}
-                                        disabled={isProcessing}
-                                        style={{
-                                            width: '100%',
-                                            padding: '16px 0',
-                                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                                            color: '#fff',
-                                            border: 'none',
-                                            borderRadius: 12,
-                                            fontSize: 14,
-                                            fontWeight: 800,
-                                            cursor: 'pointer',
-                                            boxShadow: '0 6px 20px rgba(16, 185, 129, 0.35)',
-                                            transition: 'all 0.2s',
-                                        }}
-                                    >
-                                        Simulasikan Bayar SEKARANG (Lunas)
-                                    </button>
+                                    {Object.entries(xenditMethods).map(([catKey, cat]) => (
+                                        <div key={catKey}>
+                                            <button
+                                                className={`xnd-cat-btn ${xenditCategory === catKey ? 'active' : ''}`}
+                                                onClick={() => setXenditCategory(xenditCategory === catKey ? null : catKey)}
+                                            >
+                                                <span>{cat.label}</span>
+                                                <span style={{ fontSize: 12, color: '#475569', fontWeight: 600, transition: 'transform 0.2s', display: 'inline-block', transform: xenditCategory === catKey ? 'rotate(90deg)' : 'rotate(0)' }}>›</span>
+                                            </button>
 
-                                    <button
-                                        onClick={() => runBackendSubmission('failed')}
-                                        disabled={isProcessing}
-                                        style={{
-                                            width: '100%',
-                                            padding: '12px 0',
-                                            background: '#1e1b4b',
-                                            color: '#f87171',
-                                            border: '1px solid rgba(248,113,113,0.2)',
-                                            borderRadius: 10,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                        }}
-                                    >
-                                        ❌ Simulasikan GAGAL / EXPIRED (Balikkan Stok)
+                                            {xenditCategory === catKey && (
+                                                <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: catKey === 'qris' ? '1fr' : 'repeat(2, 1fr)', gap: 8, paddingLeft: 8 }}>
+                                                    {cat.methods.map((m, idx) => (
+                                                        <div
+                                                            key={m.id}
+                                                            className="xnd-method-card"
+                                                            style={{ animationDelay: `${idx * 0.04}s` }}
+                                                            onClick={() => {
+                                                                setXenditMethod(m.id);
+                                                                setXenditStep(2);
+                                                            }}
+                                                        >
+                                                            <div style={{ width: 40, height: 40, borderRadius: 10, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, boxShadow: `0 4px 12px ${m.color}55` }}>
+                                                                {m.icon}
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontWeight: 800, fontSize: 14, color: '#f1f5f9' }}>{m.name}</div>
+                                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{m.label}</div>
+                                                            </div>
+                                                            <div style={{ marginLeft: 'auto', color: '#475569', fontSize: 14 }}>›</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* === STEP 2: DETAIL PEMBAYARAN === */}
+                        {xenditStep === 2 && methodDetail && (
+                            <div style={{ animation: 'fadeInUp 0.35s ease forwards' }}>
+                                <button
+                                    onClick={() => { setXenditStep(1); setXenditMethod(null); setXenditCategory(null); }}
+                                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', padding: 0 }}
+                                >
+                                    ‹ Ganti Metode Pembayaran
+                                </button>
+
+                                <div style={{ background: 'rgba(30,41,59,0.7)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
+                                    {/* Method Header */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+                                        <div style={{ width: 52, height: 52, borderRadius: 14, background: methodDetail.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, boxShadow: `0 6px 16px ${methodDetail.color}55` }}>
+                                            {methodDetail.icon}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 900, fontSize: 18, color: '#f1f5f9' }}>{methodDetail.name}</div>
+                                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{methodDetail.label} · Xendit Sandbox</div>
+                                        </div>
+                                        <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                                            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700, letterSpacing: '0.5px' }}>TOTAL TAGIHAN</div>
+                                            <div style={{ fontSize: 22, fontWeight: 900, color: '#10b981', marginTop: 2 }}>{fmt(payment.amount)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Payment Code Display */}
+                                    {methodDetail.paymentType === 'va' && (
+                                        <div>
+                                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, marginBottom: 10, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{methodDetail.paymentLabel}</div>
+                                            <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                                <code style={{ fontSize: 22, fontWeight: 900, color: '#93c5fd', letterSpacing: '2px' }}>
+                                                    {methodDetail.paymentCode.replace(/(\d{4})(?=\d)/g, '$1 ')}
+                                                </code>
+                                                <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(methodDetail.paymentCode); }}>
+                                                    📋 Salin
+                                                </button>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 10, padding: '10px 14px' }}>
+                                                <span style={{ fontSize: 16 }}>⏰</span>
+                                                <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 600 }}>Berlaku 24 jam · Bayar sebelum expired</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {methodDetail.paymentType === 'ewallet' && (
+                                        <div>
+                                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, marginBottom: 10, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{methodDetail.paymentLabel}</div>
+                                            <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                                <code style={{ fontSize: 18, fontWeight: 900, color: '#a5b4fc', letterSpacing: '1px' }}>{methodDetail.paymentCode}</code>
+                                                <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(methodDetail.paymentCode); }}>
+                                                    📋 Salin
+                                                </button>
+                                            </div>
+                                            <div style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#c4b5fd', fontWeight: 600 }}>
+                                                📱 Buka aplikasi {methodDetail.name} → Scan QR / Masukkan kode referensi di atas untuk melanjutkan pembayaran.
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {methodDetail.paymentType === 'qris' && (
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, marginBottom: 16, letterSpacing: '0.5px', textTransform: 'uppercase' }}>QR Code Pembayaran</div>
+                                            {/* Simulated QR Code */}
+                                            <div style={{ display: 'inline-block', background: '#fff', padding: 16, borderRadius: 16, marginBottom: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                                                <div style={{ width: 160, height: 160, background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 21'%3E%3Cpath fill='%23000' d='M0 0h7v7H0zm8 0h1v1H8zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h7v7h-7zM1 1v5h5V1zm1 1h3v3H2zm12 0v5h5V1zm1 1h3v3h-3zM8 2h1v1H8zm2 0h1v1h-1zm2 0h1v1h-1zM8 4h1v2H8zm2 0h2v1h-2zm3 0h1v1h-1zM0 8h1v1H0zm2 0h2v1H2zm3 0h1v1H5zm2 0h1v1H7zm2 0h1v1H9zm2 0h1v2h-1zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zM0 9h1v1H0zm2 0h1v1H2zm4 0h2v1H6zm4 0h1v1h-1zm2 0h1v1h-1zm4 0h1v1h-1zM0 10h1v1H0zm2 0h3v1H2zm3 0h1v1H5zm4 0h1v1H9zm2 0h1v1h-1zm4 0h1v1h-1zm2 0h2v1h-2zM0 11h2v1H0zm3 0h2v1H3zm3 0h1v1H6zm2 0h1v1H8zm4 0h3v1h-3zm2 0h1v1h-1zm2 0h1v1h-1zM0 12h1v1H0zm2 0h1v1H2zm2 0h1v1H4zm2 0h1v1H6zm2 0h2v2H8zm3 0h1v1h-1zm2 0h1v1h-1zm4 0h1v1h-1zM0 13h7v7H0zm8 0h1v2H8zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h2v1h-2zm3 0h1v1h-1zm-4 1h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zM1 14v5h5v-5zm1 1h3v3H2zm8 0h1v1h-1zm2 0h1v1h-1zm2 0h3v2h-3zM9 16h1v1H9zm4 0h2v1h-2zm3 0h1v1h-1zM8 17h1v1H8zm2 0h1v1h-1zm2 0h2v1h-2zm3 0h2v1h-2zM8 18h2v1H8zm3 0h1v1h-1zm2 0h1v1h-1zm2 0h1v2h-1zM9 19h1v1H9zm2 0h1v1h-1zm4 0h2v1h-2z'/%3E%3C/svg%3E")`, backgroundSize: 'cover', imageRendering: 'pixelated' }} />
+                                            </div>
+                                            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>ID Transaksi: <code style={{ color: '#93c5fd', fontWeight: 700 }}>{methodDetail.paymentCode}</code></div>
+                                            <div style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>✓ Scan dengan aplikasi Bank atau E-Wallet apapun</div>
+                                        </div>
+                                    )}
+
+                                    {methodDetail.paymentType === 'minimarket' && (
+                                        <div>
+                                            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 700, marginBottom: 10, letterSpacing: '0.5px', textTransform: 'uppercase' }}>{methodDetail.paymentLabel}</div>
+                                            <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                                <code style={{ fontSize: 26, fontWeight: 900, color: '#fca5a5', letterSpacing: '3px' }}>{methodDetail.paymentCode}</code>
+                                                <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(methodDetail.paymentCode); }}>
+                                                    📋 Salin
+                                                </button>
+                                            </div>
+                                            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#fca5a5', fontWeight: 600 }}>
+                                                🏪 Tunjukkan kode ini ke kasir {methodDetail.name}. Berlaku 24 jam.
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    <button className="pay-btn-green" onClick={() => runBackendSubmission('paid')}>
+                                        ✅ Konfirmasi — Simulasikan Pembayaran Lunas
+                                    </button>
+                                    <button className="pay-btn-red" onClick={() => runBackendSubmission('failed')}>
+                                        ❌ Batalkan Transaksi & Kembalikan Stok
                                     </button>
                                 </div>
                             </div>
-                        </>
-                    ) : (
-                        /* Webhook Loader screen */
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px 30px' }}>
-                            <div style={{ width: 80, height: 80, position: 'relative', marginBottom: 24 }}>
-                                <div style={{
-                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                    border: '4px solid rgba(59,130,246,0.1)', borderTopColor: '#38bdf8',
-                                    borderRadius: '50%', animation: 'spinCircle 1s linear infinite'
-                                }} />
-                                <div style={{ fontSize: 32, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>💾</div>
+                        )}
+
+                        {/* === STEP 3: PROCESSING (Webhook Loader) === */}
+                        {xenditStep === 3 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '60px 0', animation: 'fadeInUp 0.35s ease forwards' }}>
+                                <div style={{ width: 90, height: 90, position: 'relative', marginBottom: 28 }}>
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                        border: '5px solid rgba(59,130,246,0.1)', borderTopColor: '#38bdf8',
+                                        borderRadius: '50%', animation: 'spinCircle 1s linear infinite'
+                                    }} />
+                                    <div style={{ fontSize: 36, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                                        {isSuccessPayment ? '✅' : '❌'}
+                                    </div>
+                                </div>
+                                <h3 style={{ margin: '0 0 8px 0', fontSize: 20, fontWeight: 900, color: '#f1f5f9' }}>
+                                    {isSuccessPayment ? 'Memproses Konfirmasi Pembayaran...' : 'Membatalkan Transaksi...'}
+                                </h3>
+                                <p style={{ margin: '0 0 32px 0', fontSize: 13, color: '#64748b', maxWidth: 400, lineHeight: 1.7 }}>
+                                    {isSuccessPayment
+                                        ? 'Xendit mengirimkan notifikasi webhook ke server NadaKito. Status pesanan sedang diperbarui secara aman.'
+                                        : 'Transaksi dibatalkan. Stok produk sedang dikembalikan ke database.'}
+                                </p>
+                                <div style={{ width: '100%', maxWidth: 380, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+                                    <div style={{ height: '100%', width: `${progressPercent}%`, background: 'linear-gradient(90deg, #3b82f6, #06b6d4)', borderRadius: 4, transition: 'width 0.2s ease-out' }} />
+                                </div>
+                                <p style={{ margin: 0, fontSize: 12, color: '#94a3b8', fontWeight: 600, fontStyle: 'italic' }}>{progressMessage}</p>
                             </div>
-                            <h3 style={{ margin: '0 0 8px 0', fontSize: 18, color: '#f8fafc', fontWeight: 800 }}>Memproses Webhook Otorisasi</h3>
-                            <p style={{ margin: '0 0 24px 0', fontSize: 13, color: '#94a3b8' }}>Mengamankan database transaction & pencatatan riwayat...</p>
-                            <div style={{ width: '100%', height: 8, background: '#0f172a', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
-                                <div style={{ height: '100%', width: `${progressPercent}%`, background: 'linear-gradient(90deg, #38bdf8, #93c5fd)', borderRadius: 4, transition: 'width 0.2s ease-out' }} />
-                            </div>
-                            <p style={{ margin: 0, fontSize: 12, color: '#e2e8f0', fontWeight: 600, fontStyle: 'italic' }}>{progressMessage}</p>
+                        )}
+                    </div>
+
+                    {/* RIGHT: Order Summary Panel */}
+                    <div style={{ width: 320, background: 'rgba(30,41,59,0.6)', backdropFilter: 'blur(12px)', border: '1.5px solid rgba(255,255,255,0.07)', borderRadius: 20, padding: 24, position: 'sticky', top: 92 }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', letterSpacing: '0.8px', marginBottom: 16, textTransform: 'uppercase' }}>Ringkasan Pesanan</div>
+                        
+                        <div style={{ fontSize: 11, color: '#475569', fontWeight: 600, marginBottom: 6 }}>INVOICE</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#93c5fd', marginBottom: 20, wordBreak: 'break-all' }}>{payment.external_id}</div>
+
+                        {/* Items */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                            {payment.order.items.map((item, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f0', lineHeight: 1.4 }}>{item.product_name}</div>
+                                        <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{item.quantity}x · {fmt(item.price_each)}</div>
+                                    </div>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#cbd5e1', flexShrink: 0 }}>{fmt(item.quantity * item.price_each)}</div>
+                                </div>
+                            ))}
                         </div>
-                    )}
+
+                        {/* Price breakdown */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
+                                <span>Subtotal</span>
+                                <span style={{ color: '#94a3b8' }}>{fmt(payment.order.subtotal_amount)}</span>
+                            </div>
+                            {payment.order.discount_amount > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#10b981' }}>
+                                    <span>Diskon Promo</span>
+                                    <span>-{fmt(payment.order.discount_amount)}</span>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
+                                <span>Ongkos Kirim</span>
+                                <span style={{ color: '#94a3b8' }}>{fmt(payment.order.shipping_cost)}</span>
+                            </div>
+                        </div>
+
+                        <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 12, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0' }}>Total Bayar</span>
+                            <span style={{ fontSize: 20, fontWeight: 900, color: '#10b981' }}>{fmt(payment.amount)}</span>
+                        </div>
+
+                        <div style={{ fontSize: 11, color: '#334155', background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 14px', lineHeight: 1.6 }}>
+                            📦 <span style={{ color: '#475569' }}>{payment.order.shipping_address}</span>
+                        </div>
+
+                        {xenditMethod && methodDetail && (
+                            <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, background: `${methodDetail.color}18`, border: `1px solid ${methodDetail.color}44`, borderRadius: 10, padding: '10px 14px' }}>
+                                <span style={{ fontSize: 18 }}>{methodDetail.icon}</span>
+                                <div>
+                                    <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8' }}>METODE TERPILIH</div>
+                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#e2e8f0' }}>{methodDetail.name}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -443,7 +797,7 @@ export default function SimulatePayment({ payment }) {
             display: 'flex', 
             flexDirection: 'column'
         }}>
-            <Head title="Midtrans Payment Simulator - BCA VA" />
+            <Head title="" />
 
             {/* Embedded styles for simulator animations and custom states */}
             <style dangerouslySetInnerHTML={{__html: `

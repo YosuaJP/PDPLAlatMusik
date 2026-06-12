@@ -34,6 +34,26 @@ class Product extends Model
         ];
     }
 
+    protected $appends = ['avg_rating', 'total_sold'];
+
+    public function getAvgRatingAttribute()
+    {
+        if (array_key_exists('reviews_avg_rating', $this->attributes)) {
+            return (float) ($this->attributes['reviews_avg_rating'] ?? 0);
+        }
+        return (float) ($this->reviews()->where('rating', '>', 3)->avg('rating') ?? 0);
+    }
+
+    public function getTotalSoldAttribute()
+    {
+        if (array_key_exists('order_items_sum_quantity', $this->attributes)) {
+            return (int) ($this->attributes['order_items_sum_quantity'] ?? 0);
+        }
+        return (int) ($this->orderItems()->whereHas('order.payment', function ($q) {
+            $q->where('payment_status', 'paid');
+        })->sum('quantity') ?? 0);
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id', 'category_id');

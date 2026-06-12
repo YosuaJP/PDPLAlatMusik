@@ -1,43 +1,50 @@
-import { Head, Link, router } from '@inertiajs/react';
+import Navbar from '@/Components/Navbar';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
-function Navbar({ auth, cartCount }) {
-    return (
-        <nav style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 20, height: 64 }}>
-                <Link href={route('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-                    <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: 17, color: '#1a1a1a' }}>NadaKito</span>
-                </Link>
-                <div style={{ flex: 1 }} />
-                <Link href={route('dashboard')} style={{ fontSize: 14, fontWeight: 500, color: '#555', textDecoration: 'none' }}>Beranda</Link>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#555' }}>Produk</span>
-                <Link href={route('cart.index')} style={{ position: 'relative', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    {cartCount > 0 && (
-                        <span style={{ position: 'absolute', top: -6, right: -6, background: '#3a7d44', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount > 9 ? '9+' : cartCount}</span>
-                    )}
-                </Link>
-                {auth?.user && (
-                    <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {auth.user.name?.charAt(0).toUpperCase()}
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
-}
 
 export default function OrderStatus({ order }) {
     const [isWebhookLoading, setIsWebhookLoading] = useState(false);
     const [webhookMessage, setWebhookMessage] = useState(null);
+    const [loadingPercent, setLoadingPercent] = useState(0);
+    const [loadingText, setLoadingText] = useState('');
+    const [simulatedStatus, setSimulatedStatus] = useState('');
 
-    const triggerWebhook = async (status) => {
+    const triggerWebhook = (status) => {
         setIsWebhookLoading(true);
+        setSimulatedStatus(status);
         setWebhookMessage(null);
+        setLoadingPercent(0);
+        setLoadingText('Menginisialisasi webhook...');
 
+        let percent = 0;
+        const interval = setInterval(() => {
+            percent += 10;
+            setLoadingPercent(percent);
+            
+            if (percent === 20) {
+                setLoadingText('Menyiapkan payload notifikasi asinkron...');
+            } else if (percent === 40) {
+                setLoadingText(status === 'settlement' 
+                    ? 'Memverifikasi status transaksi (SETTLEMENT) via API Sandbox...' 
+                    : 'Mengirimkan notifikasi kegagalan transaksi (EXPIRED)...'
+                );
+            } else if (percent === 60) {
+                setLoadingText('Menjalankan database transaction aman (lockForUpdate)...');
+            } else if (percent === 80) {
+                setLoadingText(status === 'settlement' 
+                    ? 'Memperbarui status pesanan menjadi PROCESSING & mencatat riwayat...' 
+                    : 'Mengembalikan stok produk & mencatat mutasi pengembalian...'
+                );
+            } else if (percent >= 100) {
+                clearInterval(interval);
+                executeWebhookCall(status);
+            }
+        }, 300);
+    };
+
+    const executeWebhookCall = async (status) => {
         try {
             const payload = {
                 order_id: order.payment.external_id,
@@ -70,6 +77,45 @@ export default function OrderStatus({ order }) {
         }
     };
 
+    const handleReceive = (id) => {
+        Swal.fire({
+            title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Konfirmasi Pesanan Diterima</span>',
+            html: `<div style="font-size: 14px; color: #6b7280; margin-bottom: 20px;">Apakah Anda yakin ingin menyelesaikan pesanan ini?</div>
+                   <div style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 12px; padding: 12px; margin-top: 10px;">
+                       <span style="color: #ef4444; font-size: 13px; font-weight: 500;">⚠️ Perhatian: Setelah pesanan diterima, barang tidak bisa dikembalikan / direfund.</span>
+                   </div>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10b981',
+            cancelButtonColor: '#f3f4f6',
+            confirmButtonText: '<span style="font-weight: 500;">Ya, Saya Terima</span>',
+            cancelButtonText: '<span style="color: #4b5563; font-weight: 500;">Batal</span>',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                confirmButton: 'rounded-xl px-6 py-2.5',
+                cancelButton: 'rounded-xl px-6 py-2.5',
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(route('orders.receive', id), {}, { 
+                    preserveScroll: true,
+                    onSuccess: () => Swal.fire({
+                        title: '<span style="font-weight: 600; font-size: 20px; color: #374151;">Berhasil!</span>', 
+                        html: '<span style="font-size: 14px; color: #6b7280;">Pesanan telah diterima. Terima kasih!</span>', 
+                        icon: 'success',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: '<span style="font-weight: 500;">Tutup</span>',
+                        customClass: {
+                            popup: 'rounded-3xl shadow-xl border border-gray-100',
+                            confirmButton: 'rounded-xl px-6 py-2.5'
+                        }
+                    })
+                });
+            }
+        });
+    };
+
     const fmt = (n) => 'Rp ' + Number(n).toLocaleString('id-ID');
 
     // Pemetaan warna badge status pesanan
@@ -83,19 +129,38 @@ export default function OrderStatus({ order }) {
                 return { bg: '#f3e8ff', color: '#7c3aed', label: 'Dikirim' };
             case 'delivered':
                 return { bg: '#d1fae5', color: '#059669', label: 'Diterima' };
+            case 'completed':
+                return { bg: '#d1fae5', color: '#059669', label: 'Selesai' };
             case 'cancelled':
                 return { bg: '#fee2e2', color: '#dc2626', label: 'Dibatalkan' };
+            case 'refund_requested':
+                return { bg: '#fff7ed', color: '#c2410c', label: 'Refund Diajukan' };
+            case 'refund_approved':
+                return { bg: '#dcfce7', color: '#16a34a', label: 'Refund Disetujui' };
+            case 'refund_rejected':
+                return { bg: '#fee2e2', color: '#dc2626', label: 'Refund Ditolak' };
             default:
                 return { bg: '#f3f4f6', color: '#4b5563', label: status };
         }
     };
 
-    const orderStatus = getStatusStyles(order.status);
+    // Gunakan status refund untuk badge jika refund sudah selesai
+    const refundStatus = order.refund?.status;
+    const refundApproved = refundStatus === 'approved';
+    const refundRejected = refundStatus === 'rejected';
+
+    const displayStatus = refundApproved
+        ? 'refund_approved'
+        : refundRejected
+        ? 'refund_rejected'
+        : order.status;
+
+    const orderStatus = getStatusStyles(displayStatus);
     const paymentStatus = order.payment?.payment_status === 'paid'
         ? { bg: '#e6f4ea', color: '#137333', label: 'Lunas' }
         : order.payment?.payment_status === 'failed'
-        ? { bg: '#fce8e6', color: '#c5221f', label: 'Gagal' }
-        : { bg: '#fef7e0', color: '#b06000', label: 'Belum Dibayar' };
+            ? { bg: '#fce8e6', color: '#c5221f', label: 'Gagal' }
+            : { bg: '#fef7e0', color: '#b06000', label: 'Belum Dibayar' };
 
     // Dapatkan icon/bullet timeline berdasarkan status baru
     const getTimelineBullet = (status) => {
@@ -108,8 +173,16 @@ export default function OrderStatus({ order }) {
                 return { char: '🚚', bg: '#f3e8ff', border: '#8b5cf6' };
             case 'delivered':
                 return { char: '✅', bg: '#d1fae5', border: '#10b981' };
+            case 'completed':
+                return { char: '🏁', bg: '#d1fae5', border: '#10b981' };
             case 'cancelled':
                 return { char: '❌', bg: '#fee2e2', border: '#ef4444' };
+            case 'refund_requested':
+                return { char: '🔄', bg: '#fff7ed', border: '#f97316' };
+            case 'refund_approved':
+                return { char: '💚', bg: '#dcfce7', border: '#16a34a' };
+            case 'refund_rejected':
+                return { char: '🚫', bg: '#fee2e2', border: '#dc2626' };
             default:
                 return { char: '📌', bg: '#f3f4f6', border: '#9ca3af' };
         }
@@ -117,11 +190,60 @@ export default function OrderStatus({ order }) {
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Inter','Segoe UI',sans-serif", paddingBottom: 60 }}>
-            <Head title={`Pesanan #${order.order_id} — NadaKito`} />
+            <Head title="" />
             <Navbar auth={null} cartCount={0} />
 
-            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px', position: 'relative' }}>
                 
+                {/* Full-page loading overlay for Webhook Mock */}
+                {isWebhookLoading && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0, left: 0, width: '100%', height: '100%',
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        animation: 'fadeIn 0.3s ease forwards'
+                    }}>
+                        <style dangerouslySetInnerHTML={{__html: `
+                            @keyframes spinCircle {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            @keyframes fadeIn {
+                                from { opacity: 0; }
+                                to { opacity: 1; }
+                            }
+                        `}} />
+                        <div style={{ width: 90, height: 90, position: 'relative', marginBottom: 28 }}>
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                border: '5px solid rgba(59,130,246,0.1)', borderTopColor: '#38bdf8',
+                                borderRadius: '50%', animation: 'spinCircle 1s linear infinite'
+                            }} />
+                            <div style={{ fontSize: 36, position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                                {simulatedStatus === 'settlement' ? '✅' : '❌'}
+                            </div>
+                        </div>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: 22, fontWeight: 900, color: '#f1f5f9' }}>
+                            {simulatedStatus === 'settlement' ? 'Memproses Konfirmasi Pembayaran...' : 'Membatalkan Transaksi...'}
+                        </h3>
+                        <p style={{ margin: '0 0 32px 0', fontSize: 14, color: '#94a3b8', maxWidth: 450, lineHeight: 1.7, textAlign: 'center' }}>
+                            {simulatedStatus === 'settlement'
+                                ? 'Midtrans (Sandbox) mengirimkan notifikasi webhook ke server NadaKito. Status pesanan sedang diperbarui secara aman.'
+                                : 'Transaksi dibatalkan via webhook (Expired). Stok produk sedang dikembalikan ke database.'}
+                        </p>
+                        <div style={{ width: '100%', maxWidth: 400, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+                            <div style={{ height: '100%', width: `${loadingPercent}%`, background: 'linear-gradient(90deg, #3b82f6, #06b6d4)', borderRadius: 4, transition: 'width 0.3s ease-out' }} />
+                        </div>
+                        <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1', fontWeight: 600, fontStyle: 'italic' }}>{loadingText}</p>
+                    </div>
+                )}
+
                 {/* Header detail */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
                     <div>
@@ -159,10 +281,10 @@ export default function OrderStatus({ order }) {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 30, alignItems: 'start' }}>
-                    
+
                     {/* LEFT COLUMN: Order Details & Timeline */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        
+
                         {/* 1. Status Overview Card */}
                         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <div>
@@ -216,25 +338,19 @@ export default function OrderStatus({ order }) {
                                     const bullet = getTimelineBullet(hist.new_status);
                                     return (
                                         <div key={hist.id || idx} style={{ position: 'relative' }}>
-                                            {/* Bullet icon */}
+                                            {/* Elegant Dot */}
                                             <div style={{
                                                 position: 'absolute',
-                                                left: -30,
-                                                top: 0,
-                                                width: 30,
-                                                height: 30,
+                                                left: -22,
+                                                top: 6,
+                                                width: 14,
+                                                height: 14,
                                                 borderRadius: '50%',
-                                                background: bullet.bg,
-                                                border: `2px solid ${bullet.border}`,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: 14,
+                                                background: bullet.border,
+                                                border: '2px solid #fff',
                                                 zIndex: 2,
-                                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-                                            }}>
-                                                {bullet.char}
-                                            </div>
+                                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                            }} />
 
                                             {/* Content box */}
                                             <div style={{
@@ -257,7 +373,7 @@ export default function OrderStatus({ order }) {
                                                 </div>
                                                 <p style={{ margin: 0, fontSize: 13, color: '#555', lineHeight: 1.4 }}>{hist.note}</p>
                                                 <div style={{ marginTop: 6, fontSize: 11, color: '#888', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                    👤 Diperbarui oleh: <strong>{hist.changed_by}</strong>
+                                                    Diperbarui oleh: <strong>{hist.changed_by}</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -292,16 +408,59 @@ export default function OrderStatus({ order }) {
 
                     {/* RIGHT COLUMN: Summary & Payment Actions */}
                     <div style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                        
+
+                        {/* Aksi Pesanan (Diterima / Refund) */}
+                        {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !refundApproved && (
+                            <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2' }}>
+                                <h3 style={{ margin: '0 0 14px 0', fontSize: 14, fontWeight: 800, color: '#1a1a1a' }}>Aksi Pesanan</h3>
+                                
+                                {order.status === 'shipped' && (!order.refund || refundRejected) && (
+                                    <button
+                                        onClick={() => handleReceive(order.order_id)}
+                                        style={{ width: '100%', padding: '12px 0', background: '#10b981', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}
+                                    >
+                                        Pesanan Diterima
+                                    </button>
+                                )}
+
+                                {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && !order.refund && (
+                                    <Link
+                                        href={route('orders.index')}
+                                        style={{ display: 'block', textAlign: 'center', width: '100%', padding: '12px 0', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                                    >
+                                        Ajukan Refund di Dashboard
+                                    </Link>
+                                )}
+
+                                {order.refund && order.refund.status === 'pending' && (
+                                    <div style={{ padding: '10px 14px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, fontSize: 13, fontWeight: 600, color: '#c2410c', textAlign: 'center' }}>
+                                        Refund sedang diproses oleh admin
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {refundApproved && (
+                            <div style={{ background: '#f0fdf4', borderRadius: 16, padding: 20, border: '1.5px solid #86efac' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <svg width="22" height="22" fill="none" stroke="#16a34a" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <div>
+                                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#15803d' }}>Refund Berhasil Disetujui</p>
+                                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#4ade80', fontWeight: 500 }}>Stok produk telah dikembalikan ke toko</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Action Bayar (hanya tampil jika PENDING) */}
                         {order.status === 'pending' && order.payment && (
-                            <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 4px 14px rgba(245,158,11,0.06)', border: '1px solid #fde68a', background: '#fffbeb' }}>
+                            <div style={{ borderRadius: 16, padding: 20, boxShadow: '0 4px 14px rgba(245,158,11,0.06)', border: '1px solid #fde68a', background: '#fffbeb' }}>
                                 <h3 style={{ margin: '0 0 8px 0', fontSize: 15, fontWeight: 800, color: '#b45309' }}>Menunggu Pembayaran</h3>
                                 <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#d97706', lineHeight: 1.5 }}>
                                     Segera selesaikan pembayaran tagihan Anda agar pesanan dapat langsung kami proses dan kirimkan.
                                 </p>
                                 <a
-                                    href={order.payment.payment_url}
+                                    href={route('payment.checkout', order.payment.external_id)}
                                     style={{
                                         display: 'flex',
                                         width: '100%',
@@ -320,7 +479,7 @@ export default function OrderStatus({ order }) {
                                         boxSizing: 'border-box'
                                     }}
                                 >
-                                    <span>{order.payment.payment_url.includes('payment/simulate') ? 'Simulasikan Bayar Sekarang' : 'Bayar Sekarang (Midtrans Ril)'}</span>
+                                    <span>Bayar Sekarang</span>
                                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                                 </a>
                             </div>
@@ -342,38 +501,23 @@ export default function OrderStatus({ order }) {
                                         Developer Sandbox Tools
                                     </h3>
                                 </div>
-                                
+
                                 <p style={{ margin: '0 0 14px 0', fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
-                                    Gunakan panel ini untuk mensimulasikan integrasi Midtrans Sandbox secara ril atau instan di lokal.
+                                    Gunakan panel ini untuk mensimulasikan notifikasi webhook Sandbox secara instan tanpa perlu menyelesaikan pembayaran.
                                 </p>
 
-                                {order.payment.payment_url.includes('payment/simulate') ? (
-                                    <div style={{
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                        borderRadius: 8,
-                                        padding: '8px 10px',
-                                        fontSize: 10,
-                                        color: '#fca5a5',
-                                        marginBottom: 14,
-                                        lineHeight: 1.4
-                                    }}>
-                                        <strong>⚠️ Peringatan Fallback:</strong> MIDTRANS_SERVER_KEY belum diatur di berkas .env Anda. Sistem menggunakan simulator tiruan lokal.
-                                    </div>
-                                ) : (
-                                    <div style={{
-                                        background: 'rgba(56, 189, 248, 0.1)',
-                                        border: '1px solid rgba(56, 189, 248, 0.2)',
-                                        borderRadius: 8,
-                                        padding: '8px 10px',
-                                        fontSize: 10,
-                                        color: '#7dd3fc',
-                                        marginBottom: 14,
-                                        lineHeight: 1.4
-                                    }}>
-                                        <strong>🔗 Midtrans Terhubung Ril:</strong> Pembayaran Anda menggunakan API Snap Sandbox asli. Klik <strong>Bayar Sekarang (Midtrans Ril)</strong> untuk melakukan pembayaran.
-                                    </div>
-                                )}
+                                <div style={{
+                                    background: 'rgba(56, 189, 248, 0.1)',
+                                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                                    borderRadius: 8,
+                                    padding: '8px 10px',
+                                    fontSize: 10,
+                                    color: '#7dd3fc',
+                                    marginBottom: 14,
+                                    lineHeight: 1.4
+                                }}>
+                                    <strong>🔗 Sandbox Mode:</strong> Tombol di bawah akan menyimulasikan notifikasi webhook dari payment gateway ke server lokal Anda.
+                                </div>
 
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {/* Link simulator Midtrans */}
@@ -444,7 +588,7 @@ export default function OrderStatus({ order }) {
                                             {isWebhookLoading ? '...' : '❌ Gagal (Expired)'}
                                         </button>
                                     </div>
-                                    
+
                                     {webhookMessage && (
                                         <div style={{
                                             marginTop: 6,
@@ -465,7 +609,7 @@ export default function OrderStatus({ order }) {
                         {/* Order Address & Shipment Info */}
                         <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2' }}>
                             <h4 style={{ margin: '0 0 14px 0', fontWeight: 850, fontSize: 14, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Informasi Pengiriman</h4>
-                            
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 <div>
                                     <p style={{ margin: 0, fontSize: 11, color: '#888', fontWeight: 600 }}>KURIR PILIHAN</p>

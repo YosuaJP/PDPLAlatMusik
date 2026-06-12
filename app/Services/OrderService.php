@@ -1,4 +1,11 @@
 <?php
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: Laravel 11.x
+ * description: Implementation of Service Pattern for checkout transactions.
+ */
 
 namespace App\Services;
 
@@ -9,16 +16,21 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\StockMovement;
+use App\Services\PromoService;
+use App\Services\StockService;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
     protected PaymentGatewayInterface $paymentGateway;
+    protected PromoService $promoService;
+    protected StockService $stockService;
 
-    public function __construct(PaymentGatewayInterface $paymentGateway)
+    public function __construct(PaymentGatewayInterface $paymentGateway, PromoService $promoService, StockService $stockService)
     {
         $this->paymentGateway = $paymentGateway;
+        $this->promoService = $promoService;
+        $this->stockService = $stockService;
     }
 
     /**
@@ -60,23 +72,42 @@ class OrderService
             }
 
             // 3. Buat pesanan & item pesanan menggunakan OrderFactory
+            // Hitung discount menggunakan PromoService jika ada promo di cart
+            if ($cart->promo) {
+                $subtotal = $cart->items->sum(function ($item) {
+                    return $item->price_each * $item->quantity;
+                });
+                
+                $cartItemsArr = $cart->items->map(fn($item) => [
+                    'product_id'  => $item->product_id,
+                    'category_id' => $item->product?->category_id,
+                    'price_each'  => (float) $item->price_each,
+                    'quantity'    => $item->quantity,
+                ])->toArray();
+
+                // Validasi ulang promo di sisi backend untuk keamanan (expired, min purchase, dll)
+                $this->promoService->validatePromo($cart->promo->promo_code, (float)$subtotal, $cartItemsArr);
+                
+                // Gunakan PromoService untuk menghitung diskon
+                $discountAmount = $this->promoService->applyDiscount($cart->promo, $subtotal, $cartItemsArr);
+                
+                // Set data tambahan ke array data agar dibaca oleh OrderFactory
+                $data['calculated_discount_amount'] = $discountAmount;
+
+                if ($cart->promo->promo_type === 'free_shipping') {
+                    $data['shipping_cost'] = 0;
+                }
+
+                // Kurangi kuota promo jika digunakan
+                if (!is_null($cart->promo->quota)) {
+                    $cart->promo->increment('used_quota');
+                }
+            }
+
             $order = OrderFactory::create($data, $cart);
 
-            // 4. Potong stok produk & catat ke StockMovement
-            foreach ($cart->items as $item) {
-                $product = Product::findOrFail($item->product_id);
-                $product->decrement('stock_qty', $item->quantity);
-
-                StockMovement::create([
-                    'product_id'    => $product->product_id,
-                    'created_by'    => $data['user_id'],
-                    'order_id'      => $order->order_id,
-                    'movement_type' => 'out',
-                    'quantity'      => $item->quantity,
-                    'notes'         => "Pengurangan stok otomatis untuk pesanan #{$order->order_id}",
-                    'created_at'    => now(),
-                ]);
-            }
+            // 4. Potong stok produk dilakukan SETELAH pembayaran dikonfirmasi (bukan di sini)
+            //    Di sini hanya validasi stok sudah dilakukan di atas (step 2)
 
             // 5. Integrasikan dengan Payment Gateway via interface
             $paymentData = $this->paymentGateway->createPayment($order);

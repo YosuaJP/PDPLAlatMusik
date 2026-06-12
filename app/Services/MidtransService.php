@@ -30,16 +30,15 @@ class MidtransService implements PaymentGatewayInterface
 
         $externalId = 'INV-MID-' . $order->order_id . '-' . Str::upper(Str::random(6));
 
-        // Jika API key belum dikonfigurasi, gunakan fallback aman ke Simulator lokal
+        // Jika API key belum dikonfigurasi, gunakan mode simulasi (dummy data)
         if (empty($serverKey)) {
-            Log::warning("Midtrans Server Key kosong. Menggunakan fallback ke Simulator lokal untuk Order #{$order->order_id}.");
+            Log::warning("Midtrans Server Key kosong. Menggunakan mode simulasi offline untuk pesanan #{$order->order_id}.");
             return [
                 'external_id'    => $externalId,
-                'payment_url'    => route('payment.simulate', ['external_id' => $externalId]),
-                'gateway_ref'    => 'midtrans_fallback_' . Str::lower(Str::random(12)),
+                'payment_url'    => route('payment.simulate', $externalId), // Arahkan langsung ke simulator
+                'gateway_ref'    => 'DUMMY_TOKEN_' . Str::random(10),
                 'payment_status' => 'pending',
                 'amount'         => (float) $order->final_amount,
-                'error'          => 'Midtrans Server Key belum diatur di berkas .env Anda. Menggunakan simulator tiruan.',
             ];
         }
 
@@ -102,14 +101,7 @@ class MidtransService implements PaymentGatewayInterface
 
             if ($response->failed()) {
                 Log::error("Panggilan API Midtrans gagal untuk Order #{$order->order_id}: " . $response->body());
-                return [
-                    'external_id'    => $externalId,
-                    'payment_url'    => route('payment.simulate', ['external_id' => $externalId]),
-                    'gateway_ref'    => 'midtrans_fallback_' . Str::lower(Str::random(12)),
-                    'payment_status' => 'pending',
-                    'amount'         => (float) $order->final_amount,
-                    'error'          => 'Terjadi kesalahan dari API Midtrans: ' . ($response->json('error_messages')[0] ?? 'Unauthorized/Invalid Server Key.'),
-                ];
+                throw new \Exception('Gagal mendapatkan token pembayaran dari Midtrans: ' . ($response->json('error_messages')[0] ?? 'Unauthorized/Invalid Server Key.'));
             }
 
             $responseData = $response->json();
@@ -124,14 +116,7 @@ class MidtransService implements PaymentGatewayInterface
 
         } catch (\Exception $e) {
             Log::error("Eksepsi terjadi saat memanggil API Midtrans untuk Order #{$order->order_id}: " . $e->getMessage());
-            return [
-                'external_id'    => $externalId,
-                'payment_url'    => route('payment.simulate', ['external_id' => $externalId]),
-                'gateway_ref'    => 'midtrans_fallback_' . Str::lower(Str::random(12)),
-                'payment_status' => 'pending',
-                'amount'         => (float) $order->final_amount,
-                'error'          => 'Koneksi ke Midtrans gagal: ' . $e->getMessage(),
-            ];
+            throw $e;
         }
     }
 

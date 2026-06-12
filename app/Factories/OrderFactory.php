@@ -1,4 +1,11 @@
 <?php
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: Laravel 11.x
+ * description: Implementation of Factory Pattern for Order instantiation.
+ */
 
 namespace App\Factories;
 
@@ -38,19 +45,7 @@ class OrderFactory
         }
 
         // 3. Hitung diskon promo jika ada
-        $discount = 0;
-        if ($cart->promo) {
-            // Misalkan promo memberikan diskon fixed atau persentase. Kita buat kalkulasi sederhana:
-            if ($cart->promo->promo_type === 'percentage') {
-                $discount = ($subtotal * $cart->promo->discount_value) / 100;
-                // Pastikan diskon tidak melebihi batas max jika ada
-                if ($cart->promo->max_discount_amount && $discount > $cart->promo->max_discount_amount) {
-                    $discount = $cart->promo->max_discount_amount;
-                }
-            } else {
-                $discount = $cart->promo->discount_value;
-            }
-        }
+        $discount = $data['calculated_discount_amount'] ?? 0;
 
         $finalAmount = $subtotal - $discount + $data['shipping_cost'];
         if ($finalAmount < 0) {

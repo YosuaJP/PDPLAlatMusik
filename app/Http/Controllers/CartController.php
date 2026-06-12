@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Services\PromoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class CartController extends Controller
 {
+    protected PromoService $promoService;
+
+    public function __construct(PromoService $promoService)
+    {
+        $this->promoService = $promoService;
+    }
+
     protected function getCurrentUserId()
     {
         $user = auth()->user();
@@ -20,7 +28,7 @@ class CartController extends Controller
     {
         $userId = $this->getCurrentUserId();
 
-        $cart = Cart::with(['items.product.category'])
+        $cart = Cart::with(['items.product.category', 'promo'])
             ->where('user_id', $userId)
             ->where('status', 'active')
             ->first();
@@ -48,6 +56,10 @@ class CartController extends Controller
             'cartItems'   => $cartItems,
             'recommended' => Product::where('active', true)->inRandomOrder()->limit(4)->get(),
             'cartId'      => $cart?->cart_id,
+            'cart'        => $cart ? [
+                'promo_id' => $cart->promo_id,
+                'promo'    => $cart->promo,
+            ] : null,
         ]);
     }
 
@@ -59,6 +71,16 @@ class CartController extends Controller
         ]);
 
         $product = Product::findOrFail($request->product_id);
+
+        // Stock guard — reject if out of stock or requested quantity exceeds stock
+        if ($product->stock_qty <= 0) {
+            return back()->withErrors(['stock' => 'Maaf, stok produk ini sudah habis.']);
+        }
+
+        if ($request->quantity > $product->stock_qty) {
+            return back()->withErrors(['stock' => "Maaf, stok tersedia hanya {$product->stock_qty} unit."]);
+        }
+
         $userId = $this->getCurrentUserId();
 
         $cart = Cart::firstOrCreate(
@@ -71,6 +93,10 @@ class CartController extends Controller
             ->first();
 
         if ($cartItem) {
+            $newQty = $cartItem->quantity + $request->quantity;
+            if ($newQty > $product->stock_qty) {
+                return back()->withErrors(['stock' => "Maaf, stok tersedia hanya {$product->stock_qty} unit (sudah ada {$cartItem->quantity} di keranjang)."]);
+            }
             $cartItem->increment('quantity', $request->quantity);
         } else {
             CartItem::create([
@@ -81,7 +107,42 @@ class CartController extends Controller
             ]);
         }
 
+        if ($request->redirect_to_checkout) {
+            return redirect()->route('checkout.index');
+        }
+
         return back()->with('success', 'Produk berhasil ditambahkan ke keranjang.');
+    }
+
+    public function buyNow(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,product_id',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $product = Product::findOrFail($request->product_id);
+
+        if ($product->stock_qty <= 0) {
+            return back()->withErrors(['stock' => 'Maaf, stok produk ini sudah habis.']);
+        }
+
+        if ($request->quantity > $product->stock_qty) {
+            return back()->withErrors(['stock' => "Maaf, stok tersedia hanya {$product->stock_qty} unit."]);
+        }
+
+        // Simpan item "beli langsung" ke session sementara — TIDAK masuk ke cart
+        session([
+            'buy_now' => [
+                'product_id' => $product->product_id,
+                'name'       => $product->name,
+                'price'      => (float) $product->price,
+                'image_url'  => $product->image_url,
+                'quantity'   => $request->quantity,
+            ]
+        ]);
+
+        return redirect()->route('checkout.buy-now');
     }
 
     public function update(Request $request, $cartItemId)
@@ -116,5 +177,72 @@ class CartController extends Controller
         $cartItem->delete();
 
         return back()->with('success', 'Item keranjang berhasil dihapus.');
+    }
+
+    public function previewPromo(Request $request)
+    {
+        $request->validate([
+            'promo_code' => 'required|string',
+            'subtotal'   => 'required|numeric|min:0',
+        ]);
+
+        $userId = $this->getCurrentUserId();
+        $cart = Cart::with('items.product.category')->where('user_id', $userId)->where('status', 'active')->first();
+
+        $cartItems = $cart ? $cart->items->map(fn($item) => [
+            'product_id'  => $item->product_id,
+            'category_id' => $item->product?->category_id,
+            'price_each'  => (float) $item->price_each,
+            'quantity'    => $item->quantity,
+        ])->toArray() : [];
+
+        $result = $this->promoService->applyPromoPreview($request->promo_code, $request->subtotal, $cartItems);
+
+        return response()->json($result);
+    }
+
+    public function applyPromo(Request $request)
+    {
+        $request->validate([
+            'promo_code' => 'required|string',
+        ]);
+
+        $userId = $this->getCurrentUserId();
+
+        $cart = Cart::with('items.product.category')->where('user_id', $userId)->where('status', 'active')->first();
+        if (!$cart) {
+            return back()->withErrors(['promo_error' => 'Keranjang kosong.']);
+        }
+
+        $subtotal = $cart->items->sum(fn($item) => $item->price_each * $item->quantity);
+
+        $cartItems = $cart->items->map(fn($item) => [
+            'product_id'  => $item->product_id,
+            'category_id' => $item->product?->category_id,
+            'price_each'  => (float) $item->price_each,
+            'quantity'    => $item->quantity,
+        ])->toArray();
+
+        $result = $this->promoService->applyPromoPreview($request->promo_code, $subtotal, $cartItems);
+
+        if (!$result['success']) {
+            return back()->withErrors(['promo_error' => $result['message']]);
+        }
+
+        $cart->update(['promo_id' => $result['promo_id']]);
+
+        return back()->with('success', $result['message']);
+    }
+
+    public function removePromo()
+    {
+        $userId = $this->getCurrentUserId();
+        $cart = Cart::where('user_id', $userId)->where('status', 'active')->first();
+        
+        if ($cart) {
+            $cart->update(['promo_id' => null]);
+        }
+
+        return back()->with('success', 'Promo berhasil dihapus dari keranjang.');
     }
 }

@@ -1,34 +1,15 @@
+/**
+ * @codecite
+ * generator: Antigravity by Google DeepMind
+ * project: NadaKito E-Commerce
+ * frameworks: React.js 18.x, Inertia.js
+ * description: Complex checkout process UI including address selection, promo validation, and order summary.
+ */
+
+import Navbar from '@/Components/Navbar';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
-function Navbar({ auth, cartCount }) {
-    return (
-        <nav style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, zIndex: 100, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 20, height: 64 }}>
-                <Link href={route('dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
-                    <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="18" height="18" fill="none" stroke="#fff" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>
-                    </div>
-                    <span style={{ fontWeight: 700, fontSize: 17, color: '#1a1a1a' }}>NadaKito</span>
-                </Link>
-                <div style={{ flex: 1 }} />
-                <Link href={route('dashboard')} style={{ fontSize: 14, fontWeight: 500, color: '#555', textDecoration: 'none' }}>Beranda</Link>
-                <span style={{ fontSize: 14, fontWeight: 500, color: '#555' }}>Produk</span>
-                <Link href={route('cart.index')} style={{ position: 'relative', color: '#555', textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
-                    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    {cartCount > 0 && (
-                        <span style={{ position: 'absolute', top: -6, right: -6, background: '#3a7d44', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{cartCount > 9 ? '9+' : cartCount}</span>
-                    )}
-                </Link>
-                {auth?.user && (
-                    <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#3a7d44,#6BCB77)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
-                        {auth.user.name?.charAt(0).toUpperCase()}
-                    </div>
-                )}
-            </div>
-        </nav>
-    );
-}
 
 export default function Checkout({ cartItems, cart, addresses, promos, couriers }) {
     const { props } = usePage();
@@ -45,24 +26,93 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
+    // State form alamat inline
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [editingAddressId, setEditingAddressId] = useState(null);
+    const [addressForm, setAddressForm] = useState({
+        label: '', address: '', city: '', postal_code: '', is_default: false
+    });
+    const [addressSubmitting, setAddressSubmitting] = useState(false);
+
+    const openAddAddress = () => {
+        setEditingAddressId(null);
+        setAddressForm({ label: '', address: '', city: '', postal_code: '', is_default: false });
+        setShowAddressForm(true);
+    };
+
+    const openEditAddress = (e, addr) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setEditingAddressId(addr.address_id);
+        setAddressForm({
+            label: addr.label, address: addr.address, city: addr.city, postal_code: addr.postal_code, is_default: addr.is_default
+        });
+        setShowAddressForm(true);
+    };
+
+    const saveAddress = (e) => {
+        e.preventDefault();
+        setAddressSubmitting(true);
+        if (editingAddressId) {
+            router.put(route('addresses.update', editingAddressId), addressForm, {
+                onSuccess: () => {
+                    setShowAddressForm(false);
+                    setAddressSubmitting(false);
+                },
+                onError: () => setAddressSubmitting(false)
+            });
+        } else {
+            router.post(route('addresses.store'), addressForm, {
+                onSuccess: () => {
+                    setShowAddressForm(false);
+                    setAddressSubmitting(false);
+                },
+                onError: () => setAddressSubmitting(false)
+            });
+        }
+    };
+
     // Kalkulasi subtotal
     const subtotal = cartItems.reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
 
     // Ambil kurir aktif
     const activeCourier = couriers.find(c => c.code === selectedCourierCode) || { cost: 0 };
-    const shippingCost = activeCourier.cost;
+    let shippingCost = activeCourier.cost;
 
-    // Ambil promo aktif & hitung diskon
+    // Ambil promo aktif & hitung diskon (Opsi B: berdasarkan applicable subtotal)
     const activePromo = promos.find(p => p.promo_id === Number(selectedPromoId));
     let discount = 0;
+    let applicableSubtotal = subtotal;
+
     if (activePromo) {
-        if (activePromo.promo_type === 'percentage') {
-            discount = (subtotal * activePromo.discount_value) / 100;
+        const scope = activePromo.scope || 'global';
+
+        if (scope === 'category' && activePromo.scope_category_ids?.length > 0) {
+            applicableSubtotal = cartItems
+                .filter(i => activePromo.scope_category_ids.includes(i.category_id))
+                .reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
+        } else if (scope === 'product' && activePromo.scope_product_ids?.length > 0) {
+            applicableSubtotal = cartItems
+                .filter(i => activePromo.scope_product_ids.includes(i.product_id))
+                .reduce((sum, i) => sum + (i.price_each * i.quantity), 0);
+        }
+
+        if (activePromo.promo_type === 'percent') {
+            discount = (applicableSubtotal * activePromo.discount_value) / 100;
             if (activePromo.max_discount_amount && discount > activePromo.max_discount_amount) {
                 discount = Number(activePromo.max_discount_amount);
             }
+        } else if (activePromo.promo_type === 'free_shipping') {
+            shippingCost = 0;
+            discount = 0;
         } else {
-            discount = Number(activePromo.discount_value);
+            discount = Math.min(Number(activePromo.discount_value), applicableSubtotal);
+        }
+
+        // Batal jika syarat minimum tidak terpenuhi (fallback keamanan)
+        if (applicableSubtotal < activePromo.min_purchase) {
+            discount = 0;
+            shippingCost = activeCourier.cost;
         }
     }
 
@@ -82,6 +132,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
         setErrorMessage('');
 
         router.post(route('checkout.store'), {
+            cart_id: cart.cart_id,
             address_id: selectedAddressId,
             courier_code: selectedCourierCode,
             shipping_cost: shippingCost,
@@ -101,7 +152,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Inter','Segoe UI',sans-serif", pb: 60 }}>
-            <Head title="Checkout — NadaKito" />
+            <Head title="" />
             <Navbar auth={auth} cartCount={cartCount} />
 
             <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 20px' }}>
@@ -140,7 +191,7 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                 <div style={{ border: '2px dashed #ddd', borderRadius: 12, padding: 20, textAlign: 'center', color: '#666' }}>
                                     <p style={{ margin: '0 0 10px 0', fontSize: 14 }}>Belum ada alamat terdaftar.</p>
                                     {/* Link ke profil untuk menambahkan alamat */}
-                                    <Link href={route('profile.edit')} style={{ color: '#3a7d44', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>+ Tambah Alamat Baru</Link>
+                                    <button onClick={openAddAddress} style={{ color: '#3a7d44', fontWeight: 700, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}>+ Tambah Alamat Baru</button>
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -165,17 +216,63 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                                                 style={{ marginTop: 3, accentColor: '#3a7d44' }}
                                             />
                                             <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                    <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>{addr.label}</span>
-                                                    {addr.is_default && (
-                                                        <span style={{ background: '#e2e8f0', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>Default</span>
-                                                    )}
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a1a' }}>{addr.label}</span>
+                                                        {addr.is_default && (
+                                                            <span style={{ background: '#e2e8f0', color: '#475569', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12 }}>Default</span>
+                                                        )}
+                                                    </div>
+                                                    <button type="button" onClick={(e) => openEditAddress(e, addr)} style={{ background: 'none', border: 'none', color: '#3a7d44', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
                                                 </div>
                                                 <p style={{ margin: 0, fontSize: 13, color: '#555', lineHeight: 1.5 }}>{addr.address}, {addr.city}</p>
                                                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>Kode Pos: {addr.postal_code}</p>
                                             </div>
                                         </label>
                                     ))}
+                                    <button onClick={openAddAddress} style={{ alignSelf: 'flex-start', marginTop: 8, color: '#3a7d44', fontWeight: 700, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        Tambah Alamat Baru
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Modal Form Alamat Inline */}
+                            {showAddressForm && (
+                                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                                    <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 500, padding: 24, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                                        <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 800 }}>{editingAddressId ? 'Edit Alamat' : 'Tambah Alamat Baru'}</h3>
+                                        <form onSubmit={saveAddress} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Label Alamat (Contoh: Rumah, Kantor)</label>
+                                                <input type="text" required value={addressForm.label} onChange={e => setAddressForm({...addressForm, label: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Alamat Lengkap</label>
+                                                <textarea required value={addressForm.address} onChange={e => setAddressForm({...addressForm, address: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', minHeight: 80, boxSizing: 'border-box' }} />
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 16 }}>
+                                                <div style={{ flex: 1 }}>
+                                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Kota</label>
+                                                    <input type="text" required value={addressForm.city} onChange={e => setAddressForm({...addressForm, city: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                                </div>
+                                                <div style={{ width: 120 }}>
+                                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Kode Pos</label>
+                                                    <input type="text" required value={addressForm.postal_code} onChange={e => setAddressForm({...addressForm, postal_code: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', boxSizing: 'border-box' }} />
+                                                </div>
+                                            </div>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                                                <input type="checkbox" checked={addressForm.is_default} onChange={e => setAddressForm({...addressForm, is_default: e.target.checked})} style={{ accentColor: '#3a7d44' }} />
+                                                Jadikan sebagai alamat utama
+                                            </label>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
+                                                <button type="button" onClick={() => setShowAddressForm(false)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontWeight: 600, cursor: 'pointer' }}>Batal</button>
+                                                <button type="submit" disabled={addressSubmitting} style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#3a7d44', color: '#fff', fontWeight: 600, cursor: addressSubmitting ? 'not-allowed' : 'pointer' }}>
+                                                    {addressSubmitting ? 'Menyimpan...' : 'Simpan'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -270,104 +367,163 @@ export default function Checkout({ cartItems, cart, addresses, promos, couriers 
                         </div>
                     </div>
 
-                    {/* RIGHT COLUMN: Ringkasan & Pembayaran */}
-                    <div style={{ position: 'sticky', top: 84 }}>
-                        
-                        {/* Promo / Kupon */}
-                        <div style={{ background: '#fff', borderRadius: 16, padding: 20, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #eef0f2', marginBottom: 16 }}>
-                            <label style={{ display: 'block', fontSize: 13, fontWeight: 750, color: '#1a1a1a', marginBottom: 10 }}>Punya Kode Promo / Kupon?</label>
-                            <select
-                                value={selectedPromoId}
-                                onChange={e => setSelectedPromoId(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    borderRadius: 10,
-                                    border: '1px solid #cbd5e1',
-                                    fontSize: 13,
-                                    background: '#fff',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <option value="">-- Pilih Promo (Tanpa Promo) --</option>
-                                {promos.map(pr => (
-                                    <option key={pr.promo_id} value={pr.promo_id}>
-                                        {pr.promo_code} - {pr.promo_name} ({pr.promo_type === 'percentage' ? pr.discount_value + '%' : fmt(pr.discount_value)} Off)
-                                    </option>
-                                ))}
-                            </select>
-                            {activePromo && (
-                                <div style={{ marginTop: 10, background: '#f0faf2', border: '1px solid #c8eacd', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#3a7d44', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span>🎉</span>
-                                    <span>Promo berhasil diterapkan! Hemat {fmt(discount)}.</span>
-                                </div>
-                            )}
-                        </div>
+                        {/* RIGHT COLUMN: Ringkasan & Pembayaran */}
+                        <div style={{ position: 'sticky', top: 84 }}>
+                            
+                            {/* Order Summary Card */}
+                            <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.04)', border: '1px solid #eef0f2' }}>
+                                <h3 style={{ margin: '0 0 20px 0', fontWeight: 800, fontSize: 18, color: '#1a1a1a' }}>Ringkasan Pesanan</h3>
 
-                        {/* Order Summary Card */}
-                        <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 3px 12px rgba(0,0,0,0.04)', border: '1px solid #eef0f2' }}>
-                            <h3 style={{ margin: '0 0 18px 0', fontWeight: 800, fontSize: 16, color: '#1a1a1a' }}>Ringkasan Pembayaran</h3>
+                                {/* List Produk (Kecil) */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid #f1f3f5', paddingBottom: 16, marginBottom: 16, maxHeight: 200, overflowY: 'auto' }}>
+                                    {cartItems.map(item => (
+                                        <div key={item.cart_item_id} style={{ display: 'flex', gap: 10 }}>
+                                            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#f5f5f5', overflow: 'hidden', flexShrink: 0 }}>
+                                                {item.product?.image_url ? (
+                                                    <img src={item.product.image_url} alt={item.product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🎸</div>
+                                                )}
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#1a1a1a', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.product?.name}</p>
+                                                <p style={{ margin: '2px 0 0', fontSize: 11, color: '#888' }}>{item.quantity} x {fmt(item.price_each)}</p>
+                                            </div>
+                                            <div style={{ fontWeight: 700, fontSize: 12, color: '#1a1a1a' }}>
+                                                {fmt(item.quantity * item.price_each)}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px dashed #e2e8f0', paddingBottom: 16, marginBottom: 16 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666' }}>
-                                    <span>Subtotal Barang</span>
-                                    <span style={{ fontWeight: 600, color: '#333' }}>{fmt(subtotal)}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666' }}>
-                                    <span>Biaya Pengiriman ({selectedCourierCode})</span>
-                                    <span style={{ fontWeight: 600, color: '#333' }}>{fmt(shippingCost)}</span>
-                                </div>
-                                {discount > 0 && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#3a7d44', fontWeight: 600 }}>
-                                        <span>Potongan Promo ({activePromo?.promo_code})</span>
-                                        <span>-{fmt(discount)}</span>
+                                {/* Promo / Kupon Redesigned */}
+                                <div style={{ marginBottom: 20 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#888', letterSpacing: '0.5px' }}>KODE VOUCHER</span>
+                                        {activePromo && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: '#3a7d44' }}>
+                                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                Voucher Aktif
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                    <select
+                                        value={selectedPromoId}
+                                        onChange={e => setSelectedPromoId(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '12px 14px',
+                                            borderRadius: 10,
+                                            border: activePromo ? '1px solid #3a7d44' : '1px solid #cbd5e1',
+                                            fontSize: 13,
+                                            background: activePromo ? '#f5fff7' : '#fff',
+                                            fontWeight: 600,
+                                            cursor: 'pointer',
+                                            color: activePromo ? '#3a7d44' : '#333'
+                                        }}
+                                    >
+                                        <option value="">Pilih / Masukkan Voucher</option>
+                                        {promos.map(pr => {
+                                            const scopeLabel = pr.scope === 'category' ? ' [Kategori]' : pr.scope === 'product' ? ' [Produk]' : '';
+                                            const discountLabel = pr.promo_type === 'percent' ? pr.discount_value + '%' : fmt(pr.discount_value);
+                                            const minLabel = pr.min_purchase > 0 ? ` · Min ${fmt(pr.min_purchase)}` : '';
+                                            return (
+                                                <option key={pr.promo_id} value={pr.promo_id}>
+                                                    {pr.promo_code} — Hemat {discountLabel}{scopeLabel}{minLabel}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    {activePromo && (
+                                        <div style={{ marginTop: 10, background: '#f0faf2', border: '1px solid #c8eacd', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#3a7d44', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span>🎉</span>
+                                            <span>Berhasil! Anda hemat {activePromo.promo_type === 'free_shipping' ? 'ongkos kirim' : fmt(discount)}.</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                                <span style={{ fontSize: 15, fontWeight: 850, color: '#1a1a1a' }}>Total Tagihan</span>
-                                <span style={{ fontSize: 20, fontWeight: 850, color: '#3a7d44' }}>{fmt(finalAmount)}</span>
-                            </div>
+                                <div style={{ borderTop: '1px dashed #e2e8f0', paddingBottom: 16, marginBottom: 16 }}></div>
 
-                            <button
-                                onClick={handlePlaceOrder}
-                                disabled={isSubmitting || cartItems.length === 0}
-                                style={{
-                                    width: '100%',
-                                    padding: '15px 0',
-                                    background: 'linear-gradient(135deg,#2d6e3e,#3a7d44)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: 30,
-                                    fontSize: 15,
-                                    fontWeight: 800,
-                                    cursor: (isSubmitting || cartItems.length === 0) ? 'not-allowed' : 'pointer',
-                                    boxShadow: '0 4px 12px rgba(58,125,68,0.3)',
-                                    transition: 'all 0.15s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 8,
-                                    opacity: isSubmitting ? 0.7 : 1
-                                }}
-                                onMouseEnter={e => {
-                                    if (!isSubmitting) e.currentTarget.style.transform = 'translateY(-1px)';
-                                }}
-                                onMouseLeave={e => {
-                                    if (!isSubmitting) e.currentTarget.style.transform = 'translateY(0)';
-                                }}
-                            >
-                                {isSubmitting ? (
-                                    <span>Memproses Pesanan...</span>
-                                ) : (
-                                    <>
-                                        <span>Konfirmasi & Bayar</span>
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                    </>
-                                )}
-                            </button>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px dashed #e2e8f0', paddingBottom: 16, marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666' }}>
+                                        <span>Subtotal Barang</span>
+                                        <span style={{ fontWeight: 600, color: '#333' }}>{fmt(subtotal)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666' }}>
+                                        <span>Biaya Pengiriman ({selectedCourierCode})</span>
+                                        <span style={{ fontWeight: 600, color: '#333' }}>
+                                            {shippingCost === 0 && activePromo?.promo_type === 'free_shipping' ? (
+                                                <span style={{ color: '#3a7d44' }}>Gratis (Promo)</span>
+                                            ) : (
+                                                fmt(shippingCost)
+                                            )}
+                                        </span>
+                                    </div>
+                                    {discount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#3a7d44', fontWeight: 600 }}>
+                                            <span>Diskon Promo</span>
+                                            <span>-{fmt(discount)}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                                    <span style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a' }}>Total Tagihan</span>
+                                    <div style={{ textAlign: 'right' }}>
+                                        {discount > 0 && (
+                                            <div style={{ fontSize: 13, color: '#999', textDecoration: 'line-through', marginBottom: 2, fontWeight: 600 }}>
+                                                {fmt(subtotal + shippingCost)}
+                                            </div>
+                                        )}
+                                        <div style={{ fontSize: 22, fontWeight: 850, color: '#1a1a1a' }}>
+                                            {fmt(finalAmount)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handlePlaceOrder}
+                                    disabled={isSubmitting || cartItems.length === 0}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px 0',
+                                        background: '#5cb85c',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: 30,
+                                        fontSize: 16,
+                                        fontWeight: 800,
+                                        cursor: (isSubmitting || cartItems.length === 0) ? 'not-allowed' : 'pointer',
+                                        boxShadow: '0 4px 14px rgba(92,184,92,0.3)',
+                                        transition: 'all 0.2s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        opacity: isSubmitting ? 0.7 : 1
+                                    }}
+                                    onMouseEnter={e => {
+                                        if (!isSubmitting) {
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = '0 6px 18px rgba(92,184,92,0.4)';
+                                        }
+                                    }}
+                                    onMouseLeave={e => {
+                                        if (!isSubmitting) {
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = '0 4px 14px rgba(92,184,92,0.3)';
+                                        }
+                                    }}
+                                >
+                                    {isSubmitting ? (
+                                        <span>Memproses Pesanan...</span>
+                                    ) : (
+                                        <>
+                                            <span>Bayar Sekarang</span>
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </>
+                                    )}
+                                </button>
 
                             <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#888', fontSize: 11, textAlign: 'center', lineHeight: 1.4 }}>
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>

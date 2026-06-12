@@ -21,11 +21,11 @@ function Navbar({ auth, cartCount, searchQuery, onSearch, onSubmitSearch }) {
                 <div className="flex justify-between items-center h-16 gap-6">
 
                     {/* Logo */}
-                    <Link href={route('dashboard')} className="flex items-center gap-2 flex-shrink-0 no-underline">
+                    <Link href={route('welcome')} className="flex items-center gap-2 flex-shrink-0 no-underline">
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                             <MusicIcon color="#fff" />
                         </div>
-                        <span className="font-bold text-xl text-gray-800 tracking-tight">Melodi POS</span>
+                        <span className="font-bold text-xl text-gray-800 tracking-tight">NadaKito</span>
                     </Link>
 
                     {/* Search */}
@@ -47,7 +47,7 @@ function Navbar({ auth, cartCount, searchQuery, onSearch, onSubmitSearch }) {
                     {/* Right */}
                     <div className="flex items-center gap-5">
                         <div className="hidden sm:flex items-center gap-5 text-sm font-medium text-gray-600">
-                            <Link href={route('dashboard')} className="hover:text-emerald-600 transition-colors">Beranda</Link>
+                            <Link href={route('welcome')} className="hover:text-emerald-600 transition-colors">Beranda</Link>
                             <Link href={route('product.catalog')} className="text-emerald-600 font-semibold">Produk</Link>
                         </div>
 
@@ -95,6 +95,14 @@ function Navbar({ auth, cartCount, searchQuery, onSearch, onSubmitSearch }) {
                                             Keranjang Saya
                                         </Link>
 
+                                        <Link href={route('orders.index')} onClick={() => setOpen(false)}
+                                            className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors no-underline">
+                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Pesanan Saya
+                                        </Link>
+
                                         <div className="border-t border-gray-100 mt-1 pt-1">
                                             <button
                                                 onClick={() => { setOpen(false); router.post(route('logout')); }}
@@ -134,7 +142,7 @@ export default function ProductCatalog({ products, categories, filters }) {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-            <Head title="Katalog Produk — Melodi POS" />
+            <Head title="" />
             <Navbar auth={auth} cartCount={cartCount} searchQuery={search} onSearch={setSearch} onSubmitSearch={submitFilters} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -183,31 +191,44 @@ export default function ProductCatalog({ products, categories, filters }) {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {products.map((product) => (
-                        <div key={product.product_id} className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-                            <Link href={route('product.detail', product.product_id)} className="group block overflow-hidden rounded-3xl bg-gray-50 mb-4">
+                    {products.map((product) => {
+                        const isSoldOut = product.stock_qty <= 0;
+                        return (
+                        <div key={product.product_id} className={`rounded-3xl border border-gray-200 bg-white p-5 shadow-sm relative ${isSoldOut ? 'opacity-70 pointer-events-none grayscale-[0.8]' : 'transition hover:shadow-md'}`}>
+                            {isSoldOut && (
+                                <div className="absolute top-8 right-8 z-10 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                                    Habis
+                                </div>
+                            )}
+                            <Link href={isSoldOut ? '#' : route('product.detail', product.product_id)} className="group block overflow-hidden rounded-3xl bg-gray-50 mb-4">
                                 <img
                                     src={product.image_url || `https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80&sig=${product.product_id}`}
                                     alt={product.name}
-                                    className="h-48 w-full object-cover transition duration-300 group-hover:scale-105"
+                                    className={`h-48 w-full object-cover transition duration-300 ${!isSoldOut && 'group-hover:scale-105'}`}
                                 />
                             </Link>
                             <div className="mb-2 text-xs uppercase tracking-[0.2em] text-emerald-600">{product.category?.category_name || 'Umum'}</div>
-                            <Link href={route('product.detail', product.product_id)} className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition-colors">
+                            <Link href={isSoldOut ? '#' : route('product.detail', product.product_id)} className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition-colors">
                                 {product.name}
                             </Link>
                             <p className="mt-2 text-sm text-gray-600 line-clamp-2">{product.description || 'Tidak ada deskripsi tersedia.'}</p>
                             <div className="mt-4 flex items-center justify-between gap-3">
                                 <span className="text-xl font-extrabold text-gray-900">{fmt(product.price)}</span>
-                                <button
-                                    onClick={() => addToCart(product.product_id)}
-                                    className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
-                                >
-                                    Tambah
-                                </button>
+                                {product.stock_qty > 0 ? (
+                                    <button
+                                        onClick={() => addToCart(product.product_id)}
+                                        className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors"
+                                    >
+                                        Tambah
+                                    </button>
+                                ) : (
+                                    <span className="rounded-full bg-red-100 px-4 py-2 text-xs font-bold text-red-600">
+                                        Stok Habis
+                                    </span>
+                                )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             </div>
         </div>

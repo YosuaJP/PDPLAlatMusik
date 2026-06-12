@@ -20,6 +20,11 @@ class Promo extends Model
         'start_date',
         'end_date',
         'active',
+        'scope',
+        'scope_category_ids',
+        'scope_product_ids',
+        'quota',
+        'used_quota',
     ];
 
     protected function casts(): array
@@ -31,6 +36,10 @@ class Promo extends Model
             'discount_value'      => 'decimal:2',
             'max_discount_amount' => 'decimal:2',
             'min_purchase'        => 'decimal:2',
+            'scope_category_ids'  => 'array',
+            'scope_product_ids'   => 'array',
+            'quota'               => 'integer',
+            'used_quota'          => 'integer',
         ];
     }
 

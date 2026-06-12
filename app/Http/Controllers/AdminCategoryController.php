@@ -49,12 +49,23 @@ class AdminCategoryController extends Controller
             'active'        => $request->boolean('active'),
         ]);
 
-        return back()->with('success', 'Kategori berhasil diperbarui.');
+        $msg = 'Kategori berhasil diperbarui.';
+        if ($category->active === false && $category->products()->exists()) {
+            $count = $category->products()->count();
+            $msg .= " ({$count} produk dalam kategori ini otomatis disembunyikan dari toko.)";
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
+
+        if ($category->products()->exists()) {
+            return back()->with('error', 'Kategori tidak dapat dihapus karena masih memiliki produk.');
+        }
+
         $category->delete();
 
         return back()->with('success', 'Kategori berhasil dihapus.');
