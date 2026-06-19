@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,      // 3. Kategori produk
             ProductSeeder::class,       // 4. Produk
             PromoSeeder::class,         // 5. Promo/voucher
-            OrderSeeder::class,         // 6. Orders + semua turunannya (cart, payment, shipment, review, refund, stock_movement)
+            OrderSeeder::class,         // 6. Orders + semua turunannya
+            DemoUserSeeder::class,      // 7. Akun demo mahasiswa kelas B
         ]);
     }
 }
