@@ -1,6 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, router, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 export default function AdminUser({ users, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
@@ -9,7 +10,7 @@ export default function AdminUser({ users, filters }) {
     const [editMode, setEditMode]   = useState(false);
     const [selectedId, setSelectedId] = useState(null);
     const [deleteModal, setDeleteModal] = useState(false);
-    const [deleteId, setDeleteId]       = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null); // { id, name, orders_count }
 
     const { data, setData, post, put, delete: destroy, processing, errors, reset, clearErrors } = useForm({
         name:         '',
@@ -19,6 +20,9 @@ export default function AdminUser({ users, filters }) {
         phone_number: '',
         status:       'active',
     });
+
+    // Tampilkan flash error dari server (misal: gagal hapus karena punya orders)
+    const { props } = window.__inertia ?? {};
 
     const triggerFilter = () => {
         router.get(route('admin.users.index'), { search, role }, { preserveState: true, replace: true });
@@ -52,9 +56,82 @@ export default function AdminUser({ users, filters }) {
         }
     };
 
-    const confirmDelete = (id) => { setDeleteId(id); setDeleteModal(true); };
+    // Toggle aktif/nonaktif langsung dari tabel
+    const handleToggleStatus = (user) => {
+        const isActive = user.status === 'active';
+        Swal.fire({
+            title: `<span style="font-weight:600;font-size:18px;color:#374151">${isActive ? 'Nonaktifkan' : 'Aktifkan'} Akun?</span>`,
+            html: `<div style="font-size:14px;color:#6b7280">
+                Anda akan ${isActive ? '<strong>menonaktifkan</strong>' : '<strong>mengaktifkan kembali</strong>'} akun:<br>
+                <strong style="color:#111827">${user.name}</strong><br>
+                <span style="font-size:12px">${user.email}</span>
+                ${isActive ? '<br><br><div style="background:#fef2f2;border:1px solid #fee2e2;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#dc2626">Sesi aktif pengguna ini akan dihentikan secara otomatis.</div>' : ''}
+            </div>`,
+            icon: isActive ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonColor: isActive ? '#dc2626' : '#10b981',
+            cancelButtonColor: '#f3f4f6',
+            confirmButtonText: `<span style="font-weight:500">${isActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}</span>`,
+            cancelButtonText: '<span style="color:#4b5563;font-weight:500">Batal</span>',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                confirmButton: 'rounded-xl px-6 py-2.5',
+                cancelButton: 'rounded-xl px-6 py-2.5',
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(route('admin.users.toggleStatus', user.user_id), {}, {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            title: '<span style="font-weight:600;font-size:18px;color:#374151">Berhasil!</span>',
+                            html: `<span style="font-size:14px;color:#6b7280">Akun <strong>${user.name}</strong> berhasil ${isActive ? 'dinonaktifkan' : 'diaktifkan'}.</span>`,
+                            icon: 'success',
+                            confirmButtonColor: '#10b981',
+                            confirmButtonText: '<span style="font-weight:500">Tutup</span>',
+                            customClass: {
+                                popup: 'rounded-3xl shadow-xl border border-gray-100',
+                                confirmButton: 'rounded-xl px-6 py-2.5',
+                            }
+                        });
+                    },
+                });
+            }
+        });
+    };
+
+    // Konfirmasi hapus - cek apakah user punya orders
+    const confirmDelete = (user) => {
+        if (user.orders_count > 0) {
+            // Tidak bisa dihapus - tampilkan alert informatif
+            Swal.fire({
+                title: '<span style="font-weight:600;font-size:18px;color:#374151">Tidak Dapat Dihapus</span>',
+                html: `<div style="font-size:14px;color:#6b7280">
+                    <strong style="color:#111827">${user.name}</strong> memiliki <strong style="color:#dc2626">${user.orders_count} riwayat pesanan</strong>.<br><br>
+                    Pengguna dengan riwayat pesanan tidak dapat dihapus untuk menjaga integritas data.<br><br>
+                    <div style="background:#fef3c7;border:1px solid#fde68a;border-radius:10px;padding:10px;font-size:12px;color:#92400e">
+                        Gunakan fitur <strong>Nonaktifkan</strong> untuk menonaktifkan akun pengguna ini.
+                    </div>
+                </div>`,
+                icon: 'error',
+                confirmButtonColor: '#10b981',
+                confirmButtonText: '<span style="font-weight:500">Mengerti</span>',
+                customClass: {
+                    popup: 'rounded-3xl shadow-xl border border-gray-100',
+                    confirmButton: 'rounded-xl px-6 py-2.5',
+                }
+            });
+            return;
+        }
+        setDeleteTarget(user);
+        setDeleteModal(true);
+    };
+
     const handleDelete = () => {
-        destroy(route('admin.users.destroy', deleteId), { onSuccess: () => setDeleteModal(false) });
+        destroy(route('admin.users.destroy', deleteTarget.user_id), {
+            onSuccess: () => setDeleteModal(false),
+        });
     };
 
     const userList = users?.data ?? [];
@@ -109,16 +186,17 @@ export default function AdminUser({ users, filters }) {
                                 <th className="px-5 py-3.5">Role</th>
                                 <th className="px-5 py-3.5">Kontak</th>
                                 <th className="px-5 py-3.5">Status</th>
-                                <th className="px-5 py-3.5">Tanggal Bergabung</th>
+                                <th className="px-5 py-3.5">Orders</th>
+                                <th className="px-5 py-3.5">Bergabung</th>
                                 <th className="px-5 py-3.5 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
                             {userList.length > 0 ? userList.map(u => (
-                                <tr key={u.user_id} className="hover:bg-gray-50/60 transition-colors">
+                                <tr key={u.user_id} className={`hover:bg-gray-50/60 transition-colors ${u.status === 'inactive' ? 'opacity-60' : ''}`}>
                                     <td className="px-5 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-pink-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                            <div className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-sm flex-shrink-0 ${u.status === 'inactive' ? 'bg-gray-400' : 'bg-pink-600'}`}>
                                                 {u.name.substring(0, 2).toUpperCase()}
                                             </div>
                                             <div>
@@ -145,25 +223,50 @@ export default function AdminUser({ users, filters }) {
                                     <td className="px-5 py-4">
                                         {u.status === 'active' ? (
                                             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                Active
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                Aktif
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-1.5 text-xs font-bold text-red-600">
-                                                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                                Inactive
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-red-500">
+                                                <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                                                Nonaktif
                                             </div>
                                         )}
+                                    </td>
+                                    <td className="px-5 py-4">
+                                        <span className={`text-xs font-semibold ${u.orders_count > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                            {u.orders_count} pesanan
+                                        </span>
                                     </td>
                                     <td className="px-5 py-4 text-xs text-gray-500">{u.created_at}</td>
                                     <td className="px-5 py-4 text-right">
                                         <div className="inline-flex items-center gap-2">
+                                            {/* Edit */}
                                             <button onClick={() => openEdit(u)} className="text-blue-600 hover:text-blue-800 transition-colors" title="Edit">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                 </svg>
                                             </button>
-                                            <button onClick={() => confirmDelete(u.user_id)} className="text-red-500 hover:text-red-700 transition-colors" title="Hapus">
+                                            {/* Toggle Aktif/Nonaktif */}
+                                            <button
+                                                onClick={() => handleToggleStatus(u)}
+                                                title={u.status === 'active' ? 'Nonaktifkan' : 'Aktifkan'}
+                                                className={`transition-colors ${u.status === 'active' ? 'text-amber-500 hover:text-amber-700' : 'text-emerald-500 hover:text-emerald-700'}`}
+                                            >
+                                                {u.status === 'active' ? (
+                                                    // Icon ban/block
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                    </svg>
+                                                ) : (
+                                                    // Icon check circle
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            {/* Hapus */}
+                                            <button onClick={() => confirmDelete(u)} className="text-red-500 hover:text-red-700 transition-colors" title="Hapus">
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -173,7 +276,7 @@ export default function AdminUser({ users, filters }) {
                                 </tr>
                             )) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-gray-400 text-sm">Tidak ada data pengguna.</td>
+                                    <td colSpan={7} className="px-6 py-10 text-center text-gray-400 text-sm">Tidak ada data pengguna.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -239,8 +342,8 @@ export default function AdminUser({ users, filters }) {
                                     <div>
                                         <label className="block text-gray-700 text-xs font-bold uppercase tracking-wider mb-2">Status Akun</label>
                                         <select value={data.status} onChange={e => setData('status', e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:ring-4 focus:ring-emerald-100 focus:outline-none text-sm">
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
+                                            <option value="active">Aktif</option>
+                                            <option value="inactive">Nonaktif</option>
                                         </select>
                                     </div>
                                 </div>
@@ -262,7 +365,7 @@ export default function AdminUser({ users, filters }) {
             )}
 
             {/* Modal Delete */}
-            {deleteModal && (
+            {deleteModal && deleteTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center shadow-2xl">
                         <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
@@ -270,7 +373,8 @@ export default function AdminUser({ users, filters }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <h4 className="font-bold">Hapus Pengguna?</h4>
+                        <h4 className="font-bold text-gray-800">Hapus Pengguna?</h4>
+                        <p className="text-xs text-gray-500 mt-1">{deleteTarget.name}</p>
                         <p className="text-xs text-gray-400 mt-2">Data ini tidak dapat dikembalikan.</p>
                         <div className="flex justify-center gap-3 mt-6">
                             <button onClick={() => setDeleteModal(false)} className="px-4 py-2 border border-gray-200 text-gray-500 rounded-xl text-xs font-bold hover:bg-gray-100">Batal</button>

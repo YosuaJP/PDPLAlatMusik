@@ -21,14 +21,15 @@ class AdminRefundController extends Controller
         $refunds = $query->paginate(10)->withQueryString();
 
         $mapped = $refunds->through(fn($r) => [
-            'refund_id'      => $r->refund_id,
-            'order_id'       => $r->order_id,
-            'customer_name'  => $r->order->user->name ?? '—',
-            'customer_email' => $r->order->user->email ?? '—',
-            'evidence_urls'  => $r->evidence_urls,
-            'total'          => (float) $r->order->final_amount,
-            'reason'         => $r->reason,
-            'status'         => $r->status,
+            'refund_id'        => $r->refund_id,
+            'order_id'         => $r->order_id,
+            'customer_name'    => $r->order->user->name ?? '—',
+            'customer_email'   => $r->order->user->email ?? '—',
+            'evidence_urls'    => $r->evidence_urls,
+            'total'            => (float) $r->order->final_amount,
+            'reason'           => $r->reason,
+            'rejection_reason' => $r->rejection_reason,
+            'status'           => $r->status,
         ]);
 
         return Inertia::render('AdminRefund', [

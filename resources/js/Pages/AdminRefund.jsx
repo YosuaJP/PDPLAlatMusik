@@ -122,7 +122,15 @@ export default function AdminRefund({ refunds, filters }) {
                                             )}
                                         </td>
                                         <td className="px-5 py-4 font-bold text-gray-800">{formatRp(r.total)}</td>
-                                        <td className="px-5 py-4 text-xs text-gray-500 max-w-xs truncate">{r.reason || '—'}</td>
+                                        <td className="px-5 py-4 text-xs text-gray-500 max-w-xs">
+                                            <p className="truncate">{r.reason || '—'}</p>
+                                            {r.status === 'rejected' && r.rejection_reason && (
+                                                <div className="mt-1.5 p-2 bg-red-50 border border-red-100 rounded-lg">
+                                                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-0.5">Alasan Penolakan Admin:</p>
+                                                    <p className="text-xs text-red-700">{r.rejection_reason}</p>
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="px-5 py-4 text-center">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold ${sc.cls}`}>
                                                 {sc.label}

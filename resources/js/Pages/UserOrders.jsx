@@ -506,15 +506,23 @@ export default function UserOrders({ auth, orders }) {
                                                     </button>
                                                 )}
                                                 {ord.has_refund && (
-                                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize ${
-                                                        ord.refund_status === 'approved'  ? 'bg-emerald-100 text-emerald-700' :
-                                                        ord.refund_status === 'rejected'  ? 'bg-red-100 text-red-600' :
-                                                        'bg-amber-100 text-amber-700'
-                                                    }`}>
-                                                        {ord.refund_status === 'approved' ? 'Refund Disetujui' :
-                                                         ord.refund_status === 'rejected' ? 'Refund Ditolak' :
-                                                         'Refund Diproses'}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize ${
+                                                            ord.refund_status === 'approved'  ? 'bg-emerald-100 text-emerald-700' :
+                                                            ord.refund_status === 'rejected'  ? 'bg-red-100 text-red-600' :
+                                                            'bg-amber-100 text-amber-700'
+                                                        }`}>
+                                                            {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                             ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                             'Refund Diproses'}
+                                                        </span>
+                                                        {ord.refund_status === 'rejected' && ord.refund_rejection_reason && (
+                                                            <div className="mt-1 p-2 bg-red-50 border border-red-100 rounded-lg max-w-xs text-right">
+                                                                <p className="text-[10px] font-bold text-red-600 mb-0.5">Alasan penolakan:</p>
+                                                                <p className="text-xs text-red-700">{ord.refund_rejection_reason}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                                 {!ord.has_refund && (
                                                     <button onClick={() => handleReceive(ord.order_id)} className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors">
@@ -535,15 +543,23 @@ export default function UserOrders({ auth, orders }) {
                                                 )}
                                                 {/* Status badge refund */}
                                                 {ord.has_refund && (
-                                                    <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
-                                                        ord.refund_status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                                                        ord.refund_status === 'rejected' ? 'bg-red-100 text-red-600' :
-                                                        'bg-amber-100 text-amber-700'
-                                                    }`}>
-                                                        {ord.refund_status === 'approved' ? 'Refund Disetujui' :
-                                                         ord.refund_status === 'rejected' ? 'Refund Ditolak' :
-                                                         'Refund Diproses'}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${
+                                                            ord.refund_status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                            ord.refund_status === 'rejected' ? 'bg-red-100 text-red-600' :
+                                                            'bg-amber-100 text-amber-700'
+                                                        }`}>
+                                                            {ord.refund_status === 'approved' ? 'Refund Disetujui' :
+                                                             ord.refund_status === 'rejected' ? 'Refund Ditolak' :
+                                                             'Refund Diproses'}
+                                                        </span>
+                                                        {ord.refund_status === 'rejected' && ord.refund_rejection_reason && (
+                                                            <div className="mt-1 p-2 bg-red-50 border border-red-100 rounded-lg max-w-xs text-right">
+                                                                <p className="text-[10px] font-bold text-red-600 mb-0.5">Alasan penolakan:</p>
+                                                                <p className="text-xs text-red-700">{ord.refund_rejection_reason}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </>
                                         )}

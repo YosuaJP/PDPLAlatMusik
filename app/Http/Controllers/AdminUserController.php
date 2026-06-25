@@ -13,7 +13,7 @@ class AdminUserController extends Controller
         $role   = $request->input('role', 'all');
         $search = $request->input('search');
 
-        $query = User::orderByDesc('created_at');
+        $query = User::withCount('orders')->orderByDesc('created_at');
 
         if ($role !== 'all') {
             $query->where('role', $role);
@@ -36,6 +36,7 @@ class AdminUserController extends Controller
             'phone_number' => $u->phone_number,
             'role'         => $u->role,
             'status'       => $u->status,
+            'orders_count' => $u->orders_count,
             'created_at'   => $u->created_at->format('j F Y'),
         ]);
 
@@ -101,9 +102,45 @@ class AdminUserController extends Controller
         return back()->with('success', 'Data pengguna berhasil diperbarui.');
     }
 
+    /**
+     * Toggle status aktif/nonaktif user secara langsung.
+     */
+    public function toggleStatus($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Jangan nonaktifkan diri sendiri
+        if ($user->user_id === auth()->id()) {
+            return back()->withErrors(['toggle' => 'Tidak dapat mengubah status akun Anda sendiri.']);
+        }
+
+        $newStatus = $user->status === 'active' ? 'inactive' : 'active';
+        $user->update(['status' => $newStatus]);
+
+        $msg = $newStatus === 'inactive'
+            ? 'Akun pengguna berhasil dinonaktifkan. Sesi aktif mereka akan dihentikan.'
+            : 'Akun pengguna berhasil diaktifkan kembali.';
+
+        return back()->with('success', $msg);
+    }
+
     public function destroy($id)
     {
-        User::findOrFail($id)->delete();
+        $user = User::withCount('orders')->findOrFail($id);
+
+        // Jangan hapus diri sendiri
+        if ($user->user_id === auth()->id()) {
+            return back()->withErrors(['delete' => 'Tidak dapat menghapus akun Anda sendiri.']);
+        }
+
+        // Cek apakah user memiliki riwayat pesanan
+        if ($user->orders_count > 0) {
+            return back()->withErrors([
+                'delete' => "Pengguna ini memiliki {$user->orders_count} pesanan dan tidak dapat dihapus. Nonaktifkan akun sebagai gantinya."
+            ]);
+        }
+
+        $user->delete();
         return back()->with('success', 'Pengguna berhasil dihapus.');
     }
 }

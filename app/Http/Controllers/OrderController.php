@@ -29,8 +29,9 @@ class OrderController extends Controller
                     'final_amount'      => (float) $order->final_amount,
                     'status'            => $order->status,
                     'payment_external_id' => $order->payment->external_id ?? null,
-                    'has_refund'        => $order->refunds->count() > 0,
-                    'refund_status'     => $order->refunds->first()->status ?? null,
+                    'has_refund'              => $order->refunds->count() > 0,
+                    'refund_status'           => $order->refunds->first()?->status ?? null,
+                    'refund_rejection_reason' => $order->refunds->first()?->rejection_reason ?? null,
                     'items'             => $order->items->map(fn($item) => [
                         'order_item_id' => $item->order_item_id,
                         'product_id'   => $item->product_id,

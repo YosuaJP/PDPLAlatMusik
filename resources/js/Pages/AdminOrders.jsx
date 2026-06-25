@@ -16,12 +16,12 @@ const tabs = [
 ];
 
 const statusConfig = {
-    pending:    { label: 'PENDING',     cls: 'bg-gray-100 text-gray-600' },
-    processing: { label: 'PROCESSING',  cls: 'bg-yellow-100 text-yellow-700' },
-    shipped:    { label: 'SHIPPED',     cls: 'bg-blue-100 text-blue-700' },
-    delivered:  { label: 'DELIVERED',   cls: 'bg-cyan-100 text-cyan-700' },
-    completed:  { label: 'COMPLETED',   cls: 'bg-emerald-100 text-emerald-700' },
-    cancelled:  { label: 'CANCELLED',   cls: 'bg-red-100 text-red-600' },
+    pending:    { label: 'Menunggu Bayar', cls: 'bg-gray-100 text-gray-600' },
+    processing: { label: 'Diproses',       cls: 'bg-yellow-100 text-yellow-700' },
+    shipped:    { label: 'Dalam Perjalanan', cls: 'bg-blue-100 text-blue-700' },
+    delivered:  { label: 'Sudah Sampai',   cls: 'bg-cyan-100 text-cyan-700' },
+    completed:  { label: 'Selesai',        cls: 'bg-emerald-100 text-emerald-700' },
+    cancelled:  { label: 'Dibatalkan',     cls: 'bg-red-100 text-red-600' },
 };
 
 export default function AdminOrders({ orders, filters, counts }) {
@@ -197,8 +197,11 @@ export default function AdminOrders({ orders, filters, counts }) {
                                                         Proses
                                                     </button>
                                                 )}
-                                                {(order.status === 'shipped' || order.status === 'delivered' || order.status === 'completed') && (
-                                                    <span className="text-xs text-gray-400 italic">Selesai/Dikirim</span>
+                                                {(order.status === 'shipped') && (
+                                                    <span className="text-xs text-blue-600 font-semibold italic">Sudah dikirim, menunggu konfirmasi penerima</span>
+                                                )}
+                                                {(order.status === 'delivered' || order.status === 'completed') && (
+                                                    <span className="text-xs text-emerald-600 font-semibold italic">Barang sudah diterima</span>
                                                 )}
                                                 {order.status === 'pending' && (
                                                     <span className="text-xs text-gray-400 italic">Menunggu Bayar</span>

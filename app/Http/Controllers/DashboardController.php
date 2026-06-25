@@ -42,7 +42,7 @@ class DashboardController extends Controller
                 'total_revenue'   => Order::whereIn('status', ['processing', 'shipped', 'delivered', 'completed'])->sum('final_amount'),
                 'total_products'  => Product::where('active', true)->count(),
                 'pending_orders'  => Order::where('status', 'processing')->count(),
-                'total_customers' => User::where('role', 'user')->count(),
+                'total_customers' => User::where('role', 'user')->where('status', 'active')->count(),
             ];
 
             $recentOrders = Order::with('user')
