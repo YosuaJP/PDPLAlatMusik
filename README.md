@@ -1,6 +1,6 @@
-# 🎸 Melodi POS — Online Point of Sales Alat Musik
+# 🎸 NadaKito - Online Store Alat Musik
 
-Proyek ini adalah sistem **Online Point of Sales (P.O.S) untuk Toko Alat Musik**. Dibangun menggunakan arsitektur modern (Inertia Monolith) yang menggabungkan kekuatan backend Laravel dengan interaktivitas frontend React.js, menghasilkan aplikasi yang cepat, aman, dan tanpa perlu mengelola API terpisah.
+Proyek ini adalah platform **e-commerce toko alat musik online (NadaKito)** yang dibangun menggunakan arsitektur modern **Inertia.js Monolith** — menggabungkan kekuatan backend Laravel dengan interaktivitas frontend React.js, menghasilkan aplikasi yang cepat, aman, dan tanpa perlu mengelola API terpisah.
 
 ---
 
@@ -11,100 +11,190 @@ Proyek ini adalah sistem **Online Point of Sales (P.O.S) untuk Toko Alat Musik**
 | **Backend** | Laravel | 12.x | Framework PHP utama |
 | **Frontend** | React | 19.x | Library antarmuka pengguna (UI) |
 | **SSR Bridge** | Inertia.js | 2.x | Penghubung Laravel & React (tanpa API REST manual) |
-| **Styling** | Tailwind CSS | 3.x | Framework CSS utility-first |
+| **Styling** | Vanilla CSS | — | Custom CSS dengan glassmorphism & animasi |
 | **Bundler** | Vite | 7.x | Build tool & Hot Module Replacement (HMR) |
 | **Database** | MySQL | 8.x | Sistem manajemen basis data (via XAMPP) |
 | **Auth** | Laravel Breeze | 2.x | Starter kit autentikasi bawaan |
+| **Payment** | Midtrans | Sandbox | Payment gateway integrasi |
+| **Tunnel** | Cloudflare Tunnel | — | Expose local server ke publik (demo) |
 
 ---
 
-## 🚀 Progress & Pencapaian (Minggu 1)
+## ✅ Progress & Fitur yang Telah Diimplementasikan
 
-Berikut adalah rangkuman dari penyelesaian **Step 1 hingga Step 4** pada tahap awal pengembangan proyek ini:
+### 🗓️ Week 1 — Fondasi
+- **14 file migrasi** untuk 15 tabel basis data berelasi penuh
+- **15 Eloquent Models** dengan relasi lengkap (`hasMany`, `belongsTo`, `hasOne`)
+- **7 Seeder** dengan data dummy realistis (admin, customer, produk, orders)
+- **Repository Pattern**, **Observer Pattern**, **Snapshot Pattern**
+- Redesign UI Storefront, Auth, dan Admin Dashboard
 
-### 1. Fondasi Database (Database Layer)
-- Berhasil membuat **14 file migrasi baru** untuk menyusun struktur basis data, ditambah modifikasi pada tabel `users`. Total ada 15 tabel berelasi.
-- Mengimplementasikan **15 Eloquent Models** dengan pemetaan relasi lengkap (`hasMany`, `belongsTo`, `hasOne`) serta pengaturan *SoftDeletes* pada tabel utama (`users`, `products`).
-- Membuat **7 Seeder** yang menampung data dummy realistis:
-  - 6 Pengguna (1 Admin, 5 Customer)
-  - 7 Kategori Alat Musik
-  - 18 Produk nyata beserta stoknya
-  - 4 Skenario Pesanan (Orders) lengkap dengan pembayaran, pengiriman, dan ulasan.
-- Seluruh konstrain *Foreign Key* tervalidasi dan migrasi sukses berjalan di MySQL XAMPP.
+### 🗓️ Week 2 — Fitur Inti
+- Manajemen produk, kategori, stok oleh Admin
+- Keranjang belanja (Cart) dengan AJAX real-time
+- Checkout dengan pemilihan alamat & kurir
+- Integrasi **Midtrans Payment Gateway** (Sandbox)
+- Halaman riwayat pesanan pengguna
 
-### 2. Arsitektur & Design Pattern
-- **Inertia.js Monolith:** Menggunakan pola *single-repo* di mana Laravel mengatur perutean (routing), dan React yang merendernya. Ini mematikan kebutuhan `react-router-dom` dan mencegah isu *CORS*.
-- **Repository Pattern:** Mengabstraksi logika database dari Controller. Telah dibuat `ProductRepositoryInterface` dan `OrderRepositoryInterface` beserta implementasi kelasnya, yang kemudian diikat (*bound*) ke dalam `AppServiceProvider`.
-- **Snapshot Pattern:** Pada tabel detail pesanan (`order_items`), nama dan harga produk disimpan secara langsung (bukan berelasi dengan ID saja) agar riwayat struk belanja tidak berubah walau harga produk berubah di masa depan.
-- **Observer Pattern:** Pembuatan otomatis riwayat status pesanan ke tabel `order_status_histories`.
+### 🗓️ Week 3 — Manajemen & Laporan
+- Admin: manajemen user, kelola pesanan, update status pengiriman
+- Laporan performa toko (grafik penjualan, produk terlaris)
+- Sistem ulasan/review produk oleh pembeli
+- Halaman refund: pengajuan oleh user, approve/reject oleh admin
 
-### 3. Frontend & UI/UX (Redesign)
-- **Tema Desain:** Menggunakan *Clean Light Theme* bersudut membulat (*rounded-3xl*) dengan warna aksen **Emerald (Hijau Zamrud)**, mengadaptasi referensi desain toko modern.
-- **Halaman Storefront (Welcome.jsx):** Terdapat Navbar pencarian, Banner Promo Diskon, kartu Kategori Populer, dan Grid Produk.
-- **Halaman Autentikasi:** Merombak bawaan Laravel Breeze untuk `Login`, `Register`, dan `Forgot Password` menjadi desain kartu terpusat yang modern. Menambahkan field `Nomor Telepon` pada logika pendaftaran.
-- **Dashboard POS Admin:** Tersedia Layout POS khusus dengan Sidebar lipat (*collapsible*) serta halaman *Dashboard* yang menampilkan metrik toko (Total Pendapatan, Pesanan) dan tabel peringatan stok.
-
-### 4. DevOps & Dokumentasi
-- **Git Version Control:** Repositori berhasil diinisialisasi dan diatur dalam *branch* `week-1`.
-- **API Testing:** Menyertakan file koleksi Postman lengkap (`PDPLAlatMusik.postman_collection.json`) untuk pengujian Endpoint API.
-- **Dokumentasi Laporan:** Penyusunan dokumentasi teknis, struktur, dan pola desain ini.
+### 🗓️ Week 4 — Voucher & Diskon (Strategy Pattern)
+- **Strategy Pattern** untuk kalkulasi diskon:
+  - `DiscountStrategyInterface`
+  - `PercentageDiscount` (dengan dukungan `max_cap`)
+  - `FixedAmountDiscount`
+- `PromoService`: validasi, penerapan, dan preview voucher via AJAX
+- UI Voucher di halaman **Cart** (real-time preview diskon)
+- UI Voucher di halaman **Checkout** (dropdown + status aktif)
+- Fix bug tipe promo `percent` vs `percentage`
+- Admin panel promo/voucher (buat, edit, nonaktifkan)
 
 ---
 
 ## ⚙️ Cara Menjalankan Aplikasi Secara Lokal
 
-Ikuti langkah berikut untuk menjalankan aplikasi Melodi POS di komputer Anda:
+### Prasyarat
+- PHP 8.2+
+- Composer
+- Node.js 18+
+- XAMPP (MySQL)
 
-1. **Instalasi Dependensi**
-   ```bash
-   composer install
-   npm install
-   ```
+### Langkah Instalasi
 
-2. **Konfigurasi Database (XAMPP)**
-   - Buka XAMPP Control Panel dan nyalakan (Start) modul **Apache** dan **MySQL**.
-   - Buka browser dan pergi ke `http://localhost/phpmyadmin`.
-   - Buat database baru dengan nama: **`db_melodi_pos`**.
+**1. Clone repositori:**
+```bash
+git clone https://github.com/YosuaJP/PDPLAlatMusik.git
+cd PDPLAlatMusik
+```
 
-3. **Pengaturan `.env`**
-   Duplikat file `.env.example` menjadi `.env`, buka file tersebut, dan sesuaikan bagian database:
-   ```env
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=db_melodi_pos
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
-   *(Catatan: Jika user root MySQL Anda memiliki password, silakan isikan di bagian DB_PASSWORD)*.
+**2. Instalasi dependensi:**
+```bash
+composer install
+npm install
+```
 
-4. **Jalankan Migrasi dan Seeding**
-   Lakukan perintah ini untuk membangun tabel dan memasukkan data dummy:
-   ```bash
-   php artisan migrate:fresh --seed
-   ```
+**3. Konfigurasi `.env`:**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+Sesuaikan bagian database di `.env`:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=db_alatmusik
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-5. **Jalankan Server Lokal**
-   Buka dua jendela terminal (Command Prompt/Git Bash) dan jalankan masing-masing perintah ini:
-   
-   Terminal 1 (Backend PHP):
-   ```bash
-   php artisan serve
-   ```
-   Terminal 2 (Frontend Vite):
-   ```bash
-   npm run dev
-   ```
-   Aplikasi siap diakses di: **`http://localhost:8000`**
+**4. Jalankan migrasi dan seeder:**
+```bash
+php artisan migrate:fresh --seed
+```
+
+**5. Jalankan server lokal:**
+
+Terminal 1 (Backend):
+```bash
+php artisan serve
+```
+Terminal 2 (Frontend — mode development):
+```bash
+npm run dev
+```
+Akses di: **`http://localhost:8000`**
+
+---
+
+## 🌐 Cara Menjalankan untuk Demo / Presentasi (Cloudflare Tunnel)
+
+Agar website bisa diakses dari luar laptop (teman, dosen, HP lain) **tanpa hosting berbayar**:
+
+**1. Build aset frontend (wajib, sekali sebelum presentasi):**
+```bash
+npm run build
+```
+> ⚠️ Jangan jalankan `npm run dev` setelah ini. Cukup `php artisan serve` saja.
+
+**2. Jalankan tunnel (Windows):**
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --url http://localhost:8000
+```
+
+**3. Salin URL publik** yang muncul di terminal (contoh: `https://hip-ear-lol-analyze.trycloudflare.com`) dan bagikan ke teman-teman.
+
+> ⚠️ **URL berubah setiap kali tunnel dinyalakan ulang.** Selalu bagikan URL terbaru saat presentasi dimulai.
+> ⚠️ Laptop harus tetap menyala selama sesi presentasi berlangsung.
 
 ---
 
 ## 🔐 Akun Demo untuk Login
 
-| Tipe Akun | Email | Password |
+### Admin
+| Nama | Email | Password |
 |---|---|---|
-| **Admin** | `admin@alatmusik.com` | `password123` |
-| **Customer** | `budi@gmail.com` | `password123` |
+| Admin Toko | `admin@alatmusik.com` | `password` |
+| Christian Jeffri Raphaell | `2372017@alatmusik.com` | `2372017` |
+| Charles Sung | `2372019@alatmusik.com` | `2372019` |
+| Jason Christian Jonathan | `2372022@alatmusik.com` | `2372022` |
+| Yosua Juswandiputra | `2472027@alatmusik.com` | `2472027` |
+
+### Customer (Akun Kelas B — NRP@student.maranatha.ac.id)
+- **Email:** `[NRP]@student.maranatha.ac.id`
+- **Password:** `[NRP]` masing-masing
+- Contoh: email `2472027@student.maranatha.ac.id`, password `2472027`
+
+### Customer Demo Tambahan
+| Email | Password |
+|---|---|
+| `budi@gmail.com` | `password` |
+| `sari@gmail.com` | `password` |
 
 ---
-*Dibuat untuk Laporan Target Progress Week-1.*
+
+## 📁 Struktur Proyek Penting
+
+```
+app/
+├── Contracts/
+│   └── DiscountStrategyInterface.php   # Strategy Pattern interface
+├── Services/
+│   ├── Discounts/
+│   │   ├── FixedAmountDiscount.php     # Strategy: potongan tetap
+│   │   └── PercentageDiscount.php      # Strategy: persentase + max_cap
+│   ├── PromoService.php                # Validasi & kalkulasi voucher
+│   ├── OrderService.php                # Logika pembuatan pesanan
+│   └── StockService.php               # Pencatatan pergerakan stok
+├── Factories/
+│   └── OrderFactory.php               # Factory pembuatan order
+└── Http/Controllers/
+    ├── CartController.php             # AJAX promo preview & apply
+    ├── CheckoutController.php         # Proses checkout
+    └── AdminRefundController.php      # Admin kelola refund
+
+resources/js/Pages/
+├── Cart.jsx            # Halaman keranjang + voucher real-time
+├── Checkout.jsx        # Halaman checkout + ringkasan produk
+├── AdminPromo.jsx      # Admin: kelola promo/voucher
+└── AdminRefund.jsx     # Admin: approve/reject refund
+```
+
+---
+
+## 👥 Tim Pengembang — Kelas B
+
+| NRP | Nama |
+|---|---|
+| 2372017 | Christian Jeffri Raphaell |
+| 2372019 | Charles Sung |
+| 2372022 | Jason Christian Jonathan |
+| 2472027 | Yosua Juswandiputra |
+
+---
+
+*Dibuat sebagai tugas Proyek PDPL — Semester Genap 2025/2026.*
