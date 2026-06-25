@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: nadakito
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: APP_NAME
+        value: NadaKito
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        fromService:
+          name: nadakito
+          type: web
+          property: host
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: nadakito-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: nadakito-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: nadakito-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: nadakito-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: nadakito-db
+          property: password
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: error
+
+databases:
+  - name: nadakito-db
+    plan: free
