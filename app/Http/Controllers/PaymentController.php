@@ -330,7 +330,24 @@ class PaymentController extends Controller
                         'note'       => 'Pembayaran gagal/dibatalkan melalui Webhook Midtrans. Pesanan dibatalkan.',
                         'changed_at' => now(),
                     ]);
-                    // Stok tidak perlu dikembalikan karena belum pernah dipotong saat order dibuat.
+
+                    // Kembalikan stok produk yang ada di order items
+                    foreach ($order->items as $item) {
+                        $product = \App\Models\Product::lockForUpdate()->find($item->product_id);
+                        if (!$product) continue;
+
+                        $product->increment('stock_qty', $item->quantity);
+
+                        StockMovement::create([
+                            'product_id'    => $product->product_id,
+                            'created_by'    => $order->user_id,
+                            'order_id'      => $order->order_id,
+                            'movement_type' => 'in',
+                            'quantity'      => $item->quantity,
+                            'notes'         => "Stok kembali: pesanan ORD-" . str_pad($order->order_id, 8, '0', STR_PAD_LEFT) . " dibatalkan via Webhook Midtrans.",
+                            'created_at'    => now(),
+                        ]);
+                    }
                 }
             });
         }

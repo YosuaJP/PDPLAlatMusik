@@ -36,9 +36,10 @@ class MidtransService implements PaymentGatewayInterface
             return [
                 'external_id'    => $externalId,
                 'payment_url'    => route('payment.simulate', $externalId), // Arahkan langsung ke simulator
-                'gateway_ref'    => 'DUMMY_TOKEN_' . Str::random(10),
+                'gateway_ref'    => 'midtrans_fallback_' . Str::random(10),
                 'payment_status' => 'pending',
                 'amount'         => (float) $order->final_amount,
+                'error'          => 'Server Key belum diatur. Menggunakan mode simulasi offline.',
             ];
         }
 
