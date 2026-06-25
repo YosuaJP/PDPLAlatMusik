@@ -10,17 +10,41 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Admin
+        // Admin Utama
         User::create([
-            'name' => 'Admin Toko',
-            'email' => 'admin@alatmusik.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
+            'name'         => 'Admin Toko',
+            'email'        => 'admin@alatmusik.com',
+            'password'     => Hash::make('password'),
+            'role'         => 'admin',
             'phone_number' => '081200000001',
-            'status' => 'active',
-            'created_at' => now(),
-            'updated_at' => now(),
+            'status'       => 'active',
+            'created_at'   => now(),
+            'updated_at'   => now(),
         ]);
+
+        // Admin Tim — NRP@alatmusik.com (password = NRP)
+        $teamAdmins = [
+            ['nrp' => '2372017', 'name' => 'Christian Jeffri Raphaell'],
+            ['nrp' => '2372019', 'name' => 'Charles Sung'],
+            ['nrp' => '2372022', 'name' => 'Jason Christian Jonathan'],
+            ['nrp' => '2472027', 'name' => 'Yosua Juswandiputra'],
+        ];
+
+        foreach ($teamAdmins as $admin) {
+            $email = $admin['nrp'] . '@alatmusik.com';
+            if (!User::where('email', $email)->exists()) {
+                User::create([
+                    'name'         => $admin['name'],
+                    'email'        => $email,
+                    'password'     => Hash::make($admin['nrp']),
+                    'role'         => 'admin',
+                    'phone_number' => null,
+                    'status'       => 'active',
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]);
+            }
+        }
 
         // Customers
         $customers = [
